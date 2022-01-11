@@ -13,22 +13,20 @@ import io.ktor.client.features.ServerResponseException
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
 import java.util.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 
 class StatChannels: Extension() {
 
     override val name: String = "statchannels"
 
-    // TODO Fix this janky thing
     @OptIn(DelicateCoroutinesApi::class)
     override suspend fun setup() {
         GlobalScope.launch { checker() }
@@ -41,31 +39,29 @@ class StatChannels: Extension() {
     private suspend fun checker() {
         var members = 0
         var status = false
+        val client = HttpClient {install(JsonFeature)}
+
         while(loaded) {
-            try {
-                HttpClient {install(JsonFeature)}.use {client->
-                    val response: Query = client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
-                    val tStatus = response.online
-                    if(status != tStatus) {
-                        status = !status
-                        kord.unsafe.voiceChannel(GUILD_ID, STATUS_CHANNEL).edit {
-                            name = "Status: ${response.serverStatus.replaceFirstChar {
-                                if(it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                            }}"
-                        }
-                    }
+            // Time it out in 1.5 seconds so we don't end up blocked
+            val tStatus = withTimeoutOrNull<Query?>(1500.milliseconds) {
+                try {
+                    return@withTimeoutOrNull client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
+                } catch(ignored: ServerResponseException) {return@withTimeoutOrNull null}
+            }
+            // We only want to change the name if it needs changing
+            if(tStatus != null && status != tStatus.online) {
+                status = !status
+                kord.unsafe.voiceChannel(GUILD_ID, STATUS_CHANNEL).edit {
+                    name = "Status: ${ tStatus.serverStatus.replaceFirstChar { if(it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } }"
                 }
-            } catch(ignored: ServerResponseException) {}
-            val tmem = kord.getGuild(GUILD_ID)?.members?.count() ?: -1
-            if(members != tmem
-                || kord.unsafe.guildChannel(GUILD_ID, MEMBER_COUNTER).asChannel().data.name.value?.matches(Regex("Members: [0-9]*")) != true
-            ) {
-                members = tmem
+            }
+            val tMembers = kord.getGuild(GUILD_ID)?.members?.count() ?: -1
+            if(members != tMembers) {
+                members = tMembers
                 kord.unsafe.voiceChannel(GUILD_ID, MEMBER_COUNTER).edit {
                     name = "Members: $members"
                 }
             }
-
             delay(15.seconds)
         }
         return
