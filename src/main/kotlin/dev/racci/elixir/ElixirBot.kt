@@ -44,12 +44,12 @@ suspend fun main() {
         applicationCommands {
             defaultGuild(GUILD_ID)
         }
-        intents {
-            +Intent.GuildMembers
-            +Intent.GuildMessageReactions
-        }
         members {
             fill(GUILD_ID)
+        }
+        intents {
+            +Intent.GuildMembers
+//            +Intent.GuildMessageReactions
         }
 
         chatCommands {

@@ -21,4 +21,5 @@ val CONFIG_PATH = env("CONFIG_PATH")
 val SENTRY_DSN = envOrNull("SENTRY_DSN")
 val MEMBER_COUNTER = Snowflake(env("MEMBER_COUNTER"))
 val STATUS_CHANNEL = Snowflake(env("STATUS_CHANNEL"))
+val STATUS_SERVER = env("STATUS_SERVER")
 const val JDBC_URL = "jdbc:sqlite:database.db"

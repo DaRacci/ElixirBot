@@ -7,46 +7,51 @@ import dev.kord.core.behavior.channel.edit
 import dev.racci.elixir.utils.GUILD_ID
 import dev.racci.elixir.utils.MEMBER_COUNTER
 import dev.racci.elixir.utils.STATUS_CHANNEL
+import dev.racci.elixir.utils.STATUS_SERVER
 import io.ktor.client.HttpClient
 import io.ktor.client.features.ServerResponseException
-import io.ktor.client.request.request
-import io.ktor.client.request.url
-import io.ktor.client.statement.HttpResponse
-import io.ktor.http.HttpMethod
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.request.get
+import java.util.*
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 class StatChannels: Extension() {
 
     override val name: String = "statchannels"
-    private var loaded2: Boolean = false
-    private var members: Int = 0
-    private var status: Boolean = false
 
+    // TODO Fix this janky thing
+    @OptIn(DelicateCoroutinesApi::class)
     override suspend fun setup() {
-        loaded2 = true
-        checker()
+        GlobalScope.launch { checker() }
     }
 
-    override suspend fun unload() {
-        loaded2 = false
-    }
+    @Serializable
+    data class Query(val online: Boolean = false, val serverStatus: String = "Online")
 
     @OptIn(KordUnsafe::class, KordExperimental::class)
     private suspend fun checker() {
-        while(loaded2) {
+        var members = 0
+        var status = false
+        while(loaded) {
             try {
-                HttpClient().use {client->
-                    val response: HttpResponse = client.request {
-                        method = HttpMethod.Get
-                        url("https://eu.mc-api.net/v3/server/status-http/mc.racci.dev")
-                    }
-                    status = response.status.value == 200
-                    if(status != (response.status.value == 200)) {
+                HttpClient {install(JsonFeature)}.use {client->
+                    val response: Query = client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
+                    val tStatus = response.online
+                    if(status != tStatus) {
                         status = !status
                         kord.unsafe.voiceChannel(GUILD_ID, STATUS_CHANNEL).edit {
-                            name = "Status: $status"
+                            name = "Status: ${response.serverStatus.replaceFirstChar {
+                                if(it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                            }}"
                         }
                     }
                 }
@@ -65,5 +70,4 @@ class StatChannels: Extension() {
         }
         return
     }
-
 }

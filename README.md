@@ -3,6 +3,10 @@
 ### Why?
 Lily bot while being a fantastically clean and easy to use bot has some sort comings on features that i am expanding upon for my own use.
 
+### Features
+* Member count channel
+* Channel to represent if a minecraft server is online
+
 ## Credits
 * [LilyBot](https://github.com/IrisShaders/LilyBot): The base of this bot was forked from lily.
 * [Kord](https://github.com/kordlib/kord): The Kotlin API for Discord.

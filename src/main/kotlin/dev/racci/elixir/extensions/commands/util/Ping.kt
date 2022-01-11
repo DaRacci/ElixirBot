@@ -20,9 +20,9 @@ class Ping: Extension() {
     override val name = "ping"
 
     override suspend fun setup() {
-//        val actionLog = kord.getGuild(GUILD_ID)?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+        val actionLog = kord.getGuild(GUILD_ID)?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
 
-//        ResponseHelper.responseEmbedInChannel(actionLog, "Elixir is now online!", null, DISCORD_GREEN, null)
+        ResponseHelper.responseEmbedInChannel(actionLog, "Elixir is now online!", null, DISCORD_GREEN, null)
 
         publicSlashCommand {
             name = "ping"
