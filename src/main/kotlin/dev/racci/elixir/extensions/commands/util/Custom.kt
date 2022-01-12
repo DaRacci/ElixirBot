@@ -1,5 +1,6 @@
 package dev.racci.elixir.extensions.commands.util
 
+import com.github.jezza.Toml
 import com.github.jezza.TomlArray
 import com.github.jezza.TomlTable
 import com.kotlindiscord.kord.extensions.DISCORD_BLURPLE
@@ -8,7 +9,9 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
-import dev.racci.elixir.config
+import dev.racci.elixir.configPath
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlinx.datetime.Clock
 
 /**
@@ -19,8 +22,10 @@ class Custom: Extension() {
 
     override var name = "custom"
 
+    private val commands: TomlTable = Toml.from(Files.newInputStream(Paths.get("$configPath/commands.toml")))
+
     override suspend fun setup() {
-        val commands: TomlArray = config.get("command") as TomlArray
+        val commands: TomlArray = commands.get("command") as TomlArray
         for(cmds in commands) {
             val cmd = cmds as TomlTable
             addCommand(cmd.get("name") as String,

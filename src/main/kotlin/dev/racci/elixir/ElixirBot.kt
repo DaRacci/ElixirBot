@@ -18,6 +18,7 @@ import dev.racci.elixir.extensions.commands.moderation.Report
 import dev.racci.elixir.extensions.commands.util.Custom
 import dev.racci.elixir.extensions.commands.util.Github
 import dev.racci.elixir.extensions.commands.util.Ping
+import dev.racci.elixir.extensions.RoleSelector
 import dev.racci.elixir.support.ThreadInviter
 import dev.racci.elixir.utils.BOT_TOKEN
 import dev.racci.elixir.utils.CONFIG_PATH
@@ -33,7 +34,7 @@ import org.kohsuke.github.GitHub
 import org.kohsuke.github.GitHubBuilder
 
 val configPath: Path = Paths.get(CONFIG_PATH)
-val config: TomlTable = Toml.from(Files.newInputStream(configPath))
+val config: TomlTable = Toml.from(Files.newInputStream(Paths.get("$configPath/config.toml")))
 var github: GitHub? = null
 var bot by Delegates.notNull<ExtensibleBot>()
 
@@ -49,7 +50,7 @@ suspend fun main() {
         }
         intents {
             +Intent.GuildMembers
-//            +Intent.GuildMessageReactions
+            +Intent.GuildMessageReactions
         }
 
         chatCommands {
@@ -67,6 +68,7 @@ suspend fun main() {
             add(::Github)
             add(::Custom)
             add(::StatChannels)
+            add(::RoleSelector)
 
             extPhishing {
                 appName = "Elixir Bot"
