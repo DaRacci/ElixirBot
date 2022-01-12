@@ -136,6 +136,20 @@ class RoleSelector: Extension() {
         } else ""
     }
 
+    private suspend fun requiredRoleCheck(
+        requiredRole: RoleBehavior?,
+        member: MemberBehavior,
+        context: PublicInteractionButtonContext,
+    ): String? {
+        return if(requiredRole != null && !member.asMember().hasRole(requiredRole)) {
+            context.interactionResponse.followUpEphemeral {
+                ephemeral = true
+                content = "Sorry, You need the ${requiredRole.fetchRole().name} to be able to get this."
+            }
+            null
+        } else ""
+    }
+
     @OptIn(KordPreview::class)
     @Suppress("UNCHECKED_CAST")
     private suspend fun addRoleSelector(
@@ -193,6 +207,12 @@ class RoleSelector: Extension() {
                                 roleBehavior,
                                 member,
                                 this,
+                            ) ?: return@action
+
+                            requiredRoleCheck(
+                                RoleBehavior(GUILD_ID, Snowflake(role["requiredRoleId"] as ULong), kord),
+                                member,
+                                this
                             ) ?: return@action
 
                             member.addRole(roleBehavior.id, "Role Selections")
