@@ -11,6 +11,7 @@ import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import dev.racci.elixir.database.DatabaseManager
 import dev.racci.elixir.events.JoinLeaveEvent
+import dev.racci.elixir.events.LogEvents
 import dev.racci.elixir.events.MessageEvents
 import dev.racci.elixir.extensions.StatChannels
 import dev.racci.elixir.extensions.commands.moderation.Moderation
@@ -68,12 +69,13 @@ suspend fun main() {
             add(::Github)
             add(::Custom)
             add(::StatChannels)
+            add(::LogEvents)
             add(::RoleSelector)
 
             extPhishing {
                 appName = "Elixir Bot"
                 detectionAction = DetectionAction.Kick
-                logChannelName = "anti-phishing-logs"
+                logChannelName = "☲⋯logs"
                 requiredCommandPermission = null
             }
 

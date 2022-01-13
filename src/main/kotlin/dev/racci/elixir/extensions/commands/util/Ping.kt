@@ -2,6 +2,7 @@
 package dev.racci.elixir.extensions.commands.util
 
 import com.kotlindiscord.kord.extensions.DISCORD_GREEN
+import com.kotlindiscord.kord.extensions.DISCORD_RED
 import com.kotlindiscord.kord.extensions.DISCORD_YELLOW
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
@@ -22,7 +23,7 @@ class Ping: Extension() {
     override suspend fun setup() {
         val actionLog = kord.getGuild(GUILD_ID)?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
 
-        ResponseHelper.responseEmbedInChannel(actionLog, "Elixir is now online!", null, DISCORD_GREEN, null)
+//        ResponseHelper.responseEmbedInChannel(actionLog, "Elixir is now online!", null, DISCORD_GREEN, null)
 
         publicSlashCommand {
             name = "ping"
@@ -47,5 +48,11 @@ class Ping: Extension() {
                 }
             }
         }
+    }
+
+    override suspend fun unload() {
+        val actionLog = kord.getGuild(GUILD_ID)?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+
+        ResponseHelper.responseEmbedInChannel(actionLog, "Elixir is now offline!", null, DISCORD_RED, null)
     }
 }
