@@ -32,6 +32,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
@@ -79,6 +81,7 @@ class RoleSelector: Extension() {
             addRoleSelector(
                 rsl["name"] as String,
                 rsl["channel"] as Long,
+                rsl["autoRemoveOnLimit", false] as Boolean,
                 rsl.getOrDefault("attachment", "") as String,
                 (rsl.getOrDefault("limit", -1) as Long).toInt(),
                 rsl.getOrDefault("removable", true) as Boolean,
@@ -141,17 +144,26 @@ class RoleSelector: Extension() {
 
     private suspend fun roleLimitCheck(
         limit: Int,
+        autoRemoveOnLimit: Boolean,
         member: MemberBehavior,
         selectorRoles: List<RoleBehavior>,
         context: PublicInteractionButtonContext,
     ): String? {
-        return if(limit != -1 && member.asMember().roles.count(selectorRoles::contains) >= limit) {
+        if(limit == -1) return ""
+        val conflictingRoles = member.asMember().roles.filter(selectorRoles::contains)
+        if(conflictingRoles.count() < limit) return ""
+        return if(autoRemoveOnLimit) {
+            for(role in conflictingRoles.toSet()) {
+                member.removeRole(role.id, "Maximum Amount of roles for role selector, auto removing to give new role.")
+            }
+            ""
+        } else {
             context.interactionResponse.followUpEphemeral {
                 ephemeral = true
                 content = "Sorry, You already have the maximum amount of roles from this selector."
             }
             null
-        } else ""
+        }
     }
 
     private suspend fun roleIncompatibleWithCheck(
@@ -191,6 +203,7 @@ class RoleSelector: Extension() {
     private suspend fun addRoleSelector(
         name: String,
         channel: Long,
+        autoRemoveOnLimit: Boolean,
         attachment: String,
         limit: Int,
         removable: Boolean,
@@ -210,14 +223,16 @@ class RoleSelector: Extension() {
 
                     publicButton {
                         label = role["name"] as String
-                        val emoji = (role["emoji"] as String).split(':', limit = 3)
+                        if((role["emoji"] as String).isNotEmpty()) {
+                            val emoji = (role["emoji"] as String).split(':', limit = 3)
 
-                        partialEmoji = DiscordPartialEmoji.dsl {
-                            id = Snowflake(emoji[0])
-                            this.name = emoji[1]
-                            animated = OptionalBoolean.Value(emoji[2].parseBoolean(Locale.ENGLISH) ?: false)
+                            partialEmoji = DiscordPartialEmoji.dsl {
+                                id = Snowflake(emoji[0])
+                                this.name = emoji[1]
+                                animated = OptionalBoolean.Value(emoji[2].parseBoolean(Locale.ENGLISH) ?: false)
+                            }
                         }
-                        style = ButtonStyle.Primary
+                        style = ButtonStyle.Secondary
 
                         val incompatibleWith = (role["incompatibleWith"] as TomlArray).map {
                             RoleBehavior(GUILD_ID, Snowflake(it.toString()), kord)
@@ -235,6 +250,7 @@ class RoleSelector: Extension() {
 
                             roleLimitCheck(
                                 limit,
+                                autoRemoveOnLimit,
                                 member,
                                 selectorRoles,
                                 this,
@@ -293,3 +309,5 @@ inline fun DiscordPartialEmoji.Companion.dsl(block: DiscordPartialEmojiDSL.() ->
     dsl.block()
     return dsl.build()
 }
+
+operator fun TomlTable.get(key: String, defaultValue: Any): Any = getOrDefault(key, defaultValue)
