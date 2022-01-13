@@ -46,7 +46,8 @@ object DatabaseManager {
     object RoleSelector: Table("role_selector") {
 
         val name = text("name")
-        val messageId = text("messageId")
+        val messageId = long("messageId")
+        val channelId = long("channelId")
 
         override val primaryKey = PrimaryKey(name)
 

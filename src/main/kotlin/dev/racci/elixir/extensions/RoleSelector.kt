@@ -24,16 +24,18 @@ import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.interaction.followUpEphemeral
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.Message
+import dev.kord.core.exception.EntityNotFoundException
 import dev.racci.elixir.configPath
 import dev.racci.elixir.database.DatabaseManager
 import dev.racci.elixir.utils.GUILD_ID
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
-import kotlin.properties.Delegates
 import kotlinx.coroutines.flow.count
 import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class RoleSelector: Extension() {
@@ -41,49 +43,81 @@ class RoleSelector: Extension() {
     override var name = "roles"
 
     private val roles: TomlTable = Toml.from(Files.newInputStream(Paths.get("$configPath/roles.toml")))
-    private var channel by Delegates.notNull<GuildMessageChannelBehavior>()
 
     @OptIn(KordUnsafe::class, KordExperimental::class)
     override suspend fun setup() {
         val roleSelectors: TomlArray = roles.get("roleselector") as TomlArray
-        channel = kord.unsafe.guildMessageChannel(GUILD_ID, (Snowflake(roles["roleChannel"] as ULong)))
+        // TODO: create a way to auto delete if the target channel has changed.
         newSuspendedTransaction {
-            DatabaseManager.RoleSelector.messageId.ddl.forEach {
-                val message = channel.getMessageOrNull(Snowflake(it))
-                if(message == null) {
-                    DatabaseManager.RoleSelector.deleteWhere { DatabaseManager.RoleSelector.messageId eq it }
+            for(resultRow in DatabaseManager.RoleSelector.selectAll()) {
+                val channel: GuildMessageChannelBehavior
+
+                try {
+                    channel = kord.unsafe.guildMessageChannel(
+                        GUILD_ID,
+                        Snowflake(resultRow[DatabaseManager.RoleSelector.channelId])
+                    )
+                } catch(e: EntityNotFoundException) {
+                    DatabaseManager.RoleSelector.deleteWhere {
+                        DatabaseManager.RoleSelector.name eq resultRow[DatabaseManager.RoleSelector.name]
+                    }
+                    continue
+                }
+
+                if(channel.getMessageOrNull(
+                        Snowflake(resultRow[DatabaseManager.RoleSelector.messageId])
+                    ) == null
+                ) {
+                    DatabaseManager.RoleSelector.deleteWhere {
+                        DatabaseManager.RoleSelector.name eq resultRow[DatabaseManager.RoleSelector.name]
+                    }
                 }
             }
         }
         for(rsls in roleSelectors) {
             val rsl = rsls as TomlTable
             addRoleSelector(
-                rsl.get("name") as String,
+                rsl["name"] as String,
+                rsl["channel"] as Long,
                 rsl.getOrDefault("attachment", "") as String,
-                rsl.getOrDefault("limit", -1) as Int,
+                (rsl.getOrDefault("limit", -1) as Long).toInt(),
                 rsl.getOrDefault("removable", true) as Boolean,
-                rsl.get("role") as TomlArray?
+                rsl["role"] as TomlArray?
             )
         }
     }
 
     private suspend fun ensureExistingMessage(
-        name: String,
-        attachment: String
+        selectorName: String,
+        attachment: String,
+        channel: GuildMessageChannelBehavior,
     ): Message {
-        return if(!DatabaseManager.RoleSelector.name.ddl.any { it == name }) {
-            channel.createMessage {
-                addFile(Paths.get(attachment))
-            }
-        } else {
-            channel.getMessage(
-                Snowflake(
-                    DatabaseManager.RoleSelector.select {
-                        DatabaseManager.RoleSelector.name eq name
-                    }.first()[DatabaseManager.RoleSelector.messageId]
+        var message: Message? = null
+        newSuspendedTransaction {
+            val localMessageId = DatabaseManager.RoleSelector.select {
+                DatabaseManager.RoleSelector.name eq selectorName
+            }.singleOrNull()?.get(DatabaseManager.RoleSelector.messageId)
+
+            if(localMessageId == null) {
+                message = channel.createMessage {
+                    addFile(Paths.get(attachment))
+                }
+                DatabaseManager.RoleSelector.insertIgnore {
+                    it[name] = selectorName
+                    it[messageId] = message!!.id.value.toLong()
+                    it[channelId] = channel.id.value.toLong()
+                }
+            } else {
+                message = channel.getMessage(
+                    Snowflake(
+                        DatabaseManager.RoleSelector.select {
+                            DatabaseManager.RoleSelector.name eq selectorName
+                        }.single()[DatabaseManager.RoleSelector.messageId]
+                    )
                 )
-            )
+            }
         }
+        return message!!
     }
 
     private suspend fun removeCurrentRoleCheck(
@@ -111,7 +145,7 @@ class RoleSelector: Extension() {
         selectorRoles: List<RoleBehavior>,
         context: PublicInteractionButtonContext,
     ): String? {
-        return if(limit != -1 && member.asMember().roles.count(selectorRoles::contains) > limit) {
+        return if(limit != -1 && member.asMember().roles.count(selectorRoles::contains) >= limit) {
             context.interactionResponse.followUpEphemeral {
                 ephemeral = true
                 content = "Sorry, You already have the maximum amount of roles from this selector."
@@ -137,11 +171,13 @@ class RoleSelector: Extension() {
     }
 
     private suspend fun requiredRoleCheck(
-        requiredRole: RoleBehavior?,
+        roleLong: Long?,
         member: MemberBehavior,
         context: PublicInteractionButtonContext,
     ): String? {
-        return if(requiredRole != null && !member.asMember().hasRole(requiredRole)) {
+        roleLong ?: return ""
+        val requiredRole = RoleBehavior(GUILD_ID, Snowflake(roleLong), kord)
+        return if(!member.asMember().hasRole(requiredRole)) {
             context.interactionResponse.followUpEphemeral {
                 ephemeral = true
                 content = "Sorry, You need the ${requiredRole.fetchRole().name} to be able to get this."
@@ -150,30 +186,32 @@ class RoleSelector: Extension() {
         } else ""
     }
 
-    @OptIn(KordPreview::class)
+    @OptIn(KordPreview::class, KordUnsafe::class, KordExperimental::class)
     @Suppress("UNCHECKED_CAST")
     private suspend fun addRoleSelector(
         name: String,
+        channel: Long,
         attachment: String,
         limit: Int,
         removable: Boolean,
         roles: TomlArray?,
     ) {
-        val message = ensureExistingMessage(name, attachment)
+        val message = ensureExistingMessage(name, attachment, kord.unsafe.guildMessageChannel(GUILD_ID, Snowflake(channel)))
         message.edit {
             components {
                 // Remove all so we have the order and everything fully up to date
                 removeAll()
 
                 if(roles == null) return@components
-                val selectorRoles = roles.map { RoleBehavior(GUILD_ID, Snowflake((it as TomlTable)["roleId"] as ULong), kord) }
+                val selectorRoles = roles.map { RoleBehavior(GUILD_ID, Snowflake((it as TomlTable)["roleId"] as Long), kord) }
 
                 for(role in roles.asList() as List<TomlTable>) {
-                    val roleBehavior = selectorRoles.first { it.id.value == role["roleId"] as ULong }
+                    val roleBehavior = selectorRoles.first { it.id.value.toLong() == role["roleId"] as Long }
 
                     publicButton {
                         label = role["name"] as String
                         val emoji = (role["emoji"] as String).split(':', limit = 3)
+
                         partialEmoji = DiscordPartialEmoji.dsl {
                             id = Snowflake(emoji[0])
                             this.name = emoji[1]
@@ -181,8 +219,8 @@ class RoleSelector: Extension() {
                         }
                         style = ButtonStyle.Primary
 
-                        val incompatibleWith = (role["incompatibleWith"] as Array<ULong>).map {
-                            RoleBehavior(GUILD_ID, Snowflake(it), kord)
+                        val incompatibleWith = (role["incompatibleWith"] as TomlArray).map {
+                            RoleBehavior(GUILD_ID, Snowflake(it.toString()), kord)
                         }
 
                         action {
@@ -210,7 +248,7 @@ class RoleSelector: Extension() {
                             ) ?: return@action
 
                             requiredRoleCheck(
-                                RoleBehavior(GUILD_ID, Snowflake(role["requiredRoleId"] as ULong), kord),
+                                role["requiredRoleId"] as? Long,
                                 member,
                                 this
                             ) ?: return@action
