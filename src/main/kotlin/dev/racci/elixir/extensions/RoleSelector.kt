@@ -83,7 +83,7 @@ class RoleSelector: Extension() {
                 rsl["channel"] as Long,
                 rsl["autoRemoveOnLimit", false] as Boolean,
                 rsl["attachment", ""] as String,
-                rsl["limit", -1] as Long,
+                rsl["limit", -1L] as Long,
                 rsl["removable", true] as Boolean,
                 rsl["role"] as TomlArray?
             )
