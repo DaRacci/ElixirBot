@@ -1,3 +1,4 @@
+@file:Suppress("BlockingMethodInNonBlockingContext")
 package dev.racci.elixir.extensions.commands.util
 
 import com.kotlindiscord.kord.extensions.DISCORD_RED

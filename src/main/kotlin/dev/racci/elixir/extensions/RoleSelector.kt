@@ -82,9 +82,9 @@ class RoleSelector: Extension() {
                 rsl["name"] as String,
                 rsl["channel"] as Long,
                 rsl["autoRemoveOnLimit", false] as Boolean,
-                rsl.getOrDefault("attachment", "") as String,
-                (rsl.getOrDefault("limit", -1) as Long).toInt(),
-                rsl.getOrDefault("removable", true) as Boolean,
+                rsl["attachment", ""] as String,
+                rsl["limit", -1] as Long,
+                rsl["removable", true] as Boolean,
                 rsl["role"] as TomlArray?
             )
         }
@@ -143,13 +143,13 @@ class RoleSelector: Extension() {
     }
 
     private suspend fun roleLimitCheck(
-        limit: Int,
+        limit: Long,
         autoRemoveOnLimit: Boolean,
         member: MemberBehavior,
         selectorRoles: List<RoleBehavior>,
         context: PublicInteractionButtonContext,
     ): String? {
-        if(limit == -1) return ""
+        if(limit == -1L) return ""
         val conflictingRoles = member.asMember().roles.filter(selectorRoles::contains)
         if(conflictingRoles.count() < limit) return ""
         return if(autoRemoveOnLimit) {
@@ -167,11 +167,12 @@ class RoleSelector: Extension() {
     }
 
     private suspend fun roleIncompatibleWithCheck(
-        incompatibleWith: Collection<RoleBehavior>,
+        incompatibleWith: Collection<RoleBehavior>?,
         roleBehavior: RoleBehavior,
         member: MemberBehavior,
         context: PublicInteractionButtonContext,
     ): String? {
+        incompatibleWith ?: return ""
         val incompatible = member.asMember().getAnyRole(incompatibleWith)
         return if(incompatible != null) {
             context.interactionResponse.followUpEphemeral {
@@ -205,7 +206,7 @@ class RoleSelector: Extension() {
         channel: Long,
         autoRemoveOnLimit: Boolean,
         attachment: String,
-        limit: Int,
+        limit: Long,
         removable: Boolean,
         roles: TomlArray?,
     ) {
@@ -219,12 +220,17 @@ class RoleSelector: Extension() {
                 val selectorRoles = roles.map { RoleBehavior(GUILD_ID, Snowflake((it as TomlTable)["roleId"] as Long), kord) }
 
                 for(role in roles.asList() as List<TomlTable>) {
-                    val roleBehavior = selectorRoles.first { it.id.value.toLong() == role["roleId"] as Long }
+                    val roleName: String = role["name"] as String
+                    val roleEmoji: String? = role["emoji"] as? String
+                    val roleRoleId: Long = role["roleId"] as Long
+                    val roleRequiredRoleId: Long? = role["requiredRoleId"] as? Long
+                    val roleIncompatibleWith: TomlArray? = role["incompatibleWith"] as? TomlArray
+                    val roleBehavior = selectorRoles.first { it.id.value.toLong() == roleRoleId }
 
                     publicButton {
-                        label = role["name"] as String
-                        if((role["emoji"] as String).isNotEmpty()) {
-                            val emoji = (role["emoji"] as String).split(':', limit = 3)
+                        label = roleName
+                        if(!roleEmoji.isNullOrBlank()) {
+                            val emoji = roleEmoji.split(':', limit = 3)
 
                             partialEmoji = DiscordPartialEmoji.dsl {
                                 id = Snowflake(emoji[0])
@@ -234,7 +240,7 @@ class RoleSelector: Extension() {
                         }
                         style = ButtonStyle.Secondary
 
-                        val incompatibleWith = (role["incompatibleWith"] as TomlArray).map {
+                        val incompatibleWith = roleIncompatibleWith?.map {
                             RoleBehavior(GUILD_ID, Snowflake(it.toString()), kord)
                         }
 
@@ -264,7 +270,7 @@ class RoleSelector: Extension() {
                             ) ?: return@action
 
                             requiredRoleCheck(
-                                role["requiredRoleId"] as? Long,
+                                roleRequiredRoleId,
                                 member,
                                 this
                             ) ?: return@action
@@ -275,15 +281,6 @@ class RoleSelector: Extension() {
                 }
             }
         }
-    }
-}
-
-fun Member.hasAnyRole(roles: Collection<RoleBehavior>): Boolean {
-    return if (roles.isEmpty()) {
-        true
-    } else {
-        val ids = roles.map { it.id }
-        roleIds.any { ids.contains(id) }
     }
 }
 

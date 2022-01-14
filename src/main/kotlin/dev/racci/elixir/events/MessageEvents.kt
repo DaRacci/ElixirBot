@@ -4,7 +4,6 @@
 package dev.racci.elixir.events
 
 import com.kotlindiscord.kord.extensions.DISCORD_BLURPLE
-import com.kotlindiscord.kord.extensions.DISCORD_PINK
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -13,18 +12,13 @@ import com.kotlindiscord.kord.extensions.sentry.BreadcrumbType
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.download
 import dev.kord.common.entity.ButtonStyle
-import dev.kord.core.behavior.channel.GuildMessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.edit
 import dev.kord.core.entity.Message
-import dev.kord.core.entity.channel.thread.ThreadChannel
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.core.event.message.MessageDeleteEvent
 import dev.kord.rest.builder.message.modify.actionRow
 import dev.kord.rest.builder.message.modify.embed
-import dev.racci.elixir.utils.MESSAGE_LOGS
 import dev.racci.elixir.utils.ResponseHelper
-import dev.racci.elixir.utils.SUPPORT_CHANNEL
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
@@ -41,54 +35,6 @@ class MessageEvents: Extension() {
     private val LOG_FILE_EXTENSIONS = setOf("log", "gz", "txt")
 
     override suspend fun setup() {
-        /**
-         * Log the deletion of messages to the guilds [MESSAGE_LOGS] channel
-         * @author NoComment1105
-         */
-        event<MessageDeleteEvent> {
-            action {
-                // Ignore messages from Elixir itself
-                if(event.message?.author?.id == kord.selfId) return@action
-                if(event.message?.channel !is ThreadChannel && event.message?.channel?.id == SUPPORT_CHANNEL) return@action
-
-                val actionLog = event.guild?.getChannel(MESSAGE_LOGS) as GuildMessageChannelBehavior
-                val messageContent = event.message?.asMessageOrNull()?.content.toString()
-                val eventMessage = event.message
-                val messageLocation = event.channel.id.value
-
-                actionLog.createEmbed {
-                    color = DISCORD_PINK
-                    title = "Message Deleted"
-                    description = "Location: <#$messageLocation>"
-                    timestamp = Clock.System.now()
-
-                    field {
-                        name = "Message Contents:"
-                        value =
-                            messageContent.ifEmpty {
-                                "Failed to get content of message\nMessage was likely from a Bot"
-                            }
-                        inline = false
-                    }
-                    field {
-                        name = "Message Author:"
-                        value = eventMessage?.author?.tag.toString()
-                        inline = true
-                    }
-                    field {
-                        name = "Author ID:"
-                        value = eventMessage?.author?.id.toString()
-                        inline = true
-                    }
-                }
-
-                sentry.breadcrumb(BreadcrumbType.Info) {
-                    category = "events.messageevents.MessageDeleted"
-                    message = "A message was deleted"
-                    data["content"] = messageContent.ifEmpty {"Failed to get content of message"}
-                }
-            }
-        }
 
         /**
          * Upload files that have the extensions specified in [LOG_FILE_EXTENSIONS] to hastebin, giving a user confirmation

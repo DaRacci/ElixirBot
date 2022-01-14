@@ -30,7 +30,7 @@ class LogEvents: Extension() {
 
         event<MessageDeleteEvent> {
             action {
-                if(event.message?.author?.id == kord.selfId) return@action
+                if(event.message?.asMessageOrNull()?.author?.isBot == true) return@action
                 val messageContent = event.message?.asMessageOrNull()?.content.toString()
                 val eventMessage = event.message
                 val messageLocation = event.channel.id.value
