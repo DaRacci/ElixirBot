@@ -1,7 +1,7 @@
 [versions]
 
 groovy = "3.0.9"
-kord-extensions = "1.5.1-SNAPSHOT"
+kord-extensions = "1.5.2-RC1"
 logging = "2.1.21"
 logback = "1.2.8"
 

@@ -470,13 +470,22 @@ class Github : Extension() {
 
     inner class IssueArgs : Arguments() {
 
-        val repository by string("repository", "The GitHub repository you would like to search")
-        val issue by int("issue-number", "The issue number you would like to search for")
+        val repository by string {
+            name = "repository"
+            description = "The GitHub repository you would like to search"
+        }
+        val issue by int {
+            name = "issue-number"
+            description = "The issue number you would like to search for"
+        }
     }
 
     inner class RepoArgs : Arguments() {
 
-        val repository by string("repository", "The github repository you would like to search for")
+        val repository by string {
+            name = "repository"
+            description = "The github repository you would like to search for"
+        }
     }
 
     inner class UserArgs : Arguments() {
