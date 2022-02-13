@@ -5,8 +5,6 @@ plugins {
     id("com.github.johnrengelman.shadow")
 }
 
-version = "1.0"
-
 repositories {
     mavenCentral()
 
@@ -20,7 +18,7 @@ dependencies {
 
     implementation(eLib.kord.extensions)
     implementation(eLib.kord.phishing)
-//    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlin.stdlib)
 
     // Logging dependencies
     implementation(eLib.groovy)
