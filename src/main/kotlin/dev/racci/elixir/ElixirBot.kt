@@ -33,9 +33,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.properties.Delegates
-import mu.KotlinLogging
-import org.kohsuke.github.GitHub
-import org.kohsuke.github.GitHubBuilder
 
 val configPath: Path = Paths.get(CONFIG_PATH)
 val config: TomlTable = Toml.from(Files.newInputStream(Paths.get("$configPath/config.toml")))

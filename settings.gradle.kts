@@ -1,21 +1,40 @@
+enableFeaturePreview("VERSION_CATALOGS")
 pluginManagement {
-    plugins {
-        // Update this in libs.version.toml when you change it here
-        kotlin("jvm") version "1.6.10"
-        kotlin("plugin.serialization") version "1.6.10"
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven("https://repo.racci.dev/releases")
+        maven("https://papermc.io/repo/repository/maven-public/")
+    }
 
-        // Update this in libs.version.toml when you change it here
+    plugins {
+        val kotlinVersion: String by settings
+        kotlin("plugin.serialization") version kotlinVersion
         id("com.github.johnrengelman.shadow") version "7.1.2"
+    }
+    val minixConventions: String by settings
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id.startsWith("dev.racci.minix")) {
+                useVersion(minixConventions)
+            }
+        }
     }
 }
 
 rootProject.name = "ElixirBot"
 
-enableFeaturePreview("VERSION_CATALOGS")
-
 dependencyResolutionManagement {
+    repositories {
+        maven("https://repo.racci.dev/releases")
+    }
+
     versionCatalogs {
         create("libs") {
+            val minixConventions: String by settings
+            from("dev.racci:catalog:$minixConventions")
+        }
+        create("eLib") {
             from(files("libs.versions.toml"))
         }
     }
