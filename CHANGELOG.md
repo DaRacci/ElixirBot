@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.1.1](https://github.com/Da_Racci/ElixirBot/compare/v0.1.0..v0.1.1) - 2022-02-13
+#### Bug Fixes
+- **(gradle)** Fix version in gradle - ([4b9d121](https://github.com/Da_Racci/ElixirBot/commit/4b9d121f0ba9b61b85973b37b8c00550575288e9)) - [@Da_Racci](https://github.com/Da_Racci)
+#### Miscellaneous Chores
+- **(version)** v0.1.0 - ([f6c429e](https://github.com/Da_Racci/ElixirBot/commit/f6c429ece4a701ce613be7d128ca2cf8d383fb95)) - [@Da_Racci](https://github.com/Da_Racci)
+- - -
+
 ## [v0.1.0](https://github.com/Da_Racci/ElixirBot/compare/v0.0.1..v0.1.0) - 2022-02-13
 #### Bug Fixes
 - missed a casting error - ([b2bd753](https://github.com/Da_Racci/ElixirBot/commit/b2bd753e12acdab971658303b594d43f9671b15a)) - [@Da_Racci](https://github.com/Da_Racci)
