@@ -4,6 +4,7 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import dev.kord.common.annotation.KordExperimental
 import dev.kord.common.annotation.KordUnsafe
 import dev.kord.core.behavior.channel.edit
+import dev.kord.core.kordLogger
 import dev.racci.elixir.utils.GUILD_ID
 import dev.racci.elixir.utils.MEMBER_COUNTER
 import dev.racci.elixir.utils.STATUS_CHANNEL
@@ -14,6 +15,7 @@ import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
@@ -43,10 +45,17 @@ class StatChannels : Extension() {
 
         while (loaded) {
             // Time it out in 1.5 seconds so we don't end up blocked
-            val tStatus = withTimeoutOrNull<Query?>(1500.milliseconds) {
-                try {
-                    return@withTimeoutOrNull client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
-                } catch (ignored: ServerResponseException) { return@withTimeoutOrNull null }
+            val tStatus: Query? = try {
+                withTimeoutOrNull(1500.milliseconds) {
+                    try {
+                        return@withTimeoutOrNull client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
+                    } catch (ignored: ServerResponseException) {
+                        return@withTimeoutOrNull null
+                    }
+                }
+            } catch (ignored: TimeoutCancellationException) {
+                kordLogger.warn { "Timeout while checking server status" }
+                null
             }
             // We only want to change the name if it needs changing
             if (tStatus != null && status != tStatus.online) {
