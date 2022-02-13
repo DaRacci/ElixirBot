@@ -12,15 +12,15 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.event.guild.MemberJoinEvent
 import dev.kord.core.event.guild.MemberLeaveEvent
 import dev.racci.elixir.utils.JOIN_CHANNEL
-import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.count
 import kotlinx.datetime.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * The join and leave logging for Members in the guild. More accurate join and leave times for users
  * @author NoComment1105
  */
-class JoinLeaveEvent: Extension() {
+class JoinLeaveEvent : Extension() {
 
     override val name = "joinleaveevent"
 

@@ -55,9 +55,11 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.replace
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import kotlin.system.exitProcess
+import kotlin.time.ExperimentalTime
 
 @Suppress("DuplicatedCode")
-class Moderation: Extension() {
+class Moderation : Extension() {
 
     override val name = "moderation"
 
@@ -102,7 +104,6 @@ class Moderation: Extension() {
                     data["amount"] = messageHolder.size
                 }
 
-
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "commands.moderation.clear.deleteMessages"
                     message = "Message Deleting Starting"
@@ -144,7 +145,7 @@ class Moderation: Extension() {
                 val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
                 val userArg = arguments.userArgument
 
-                if(guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild?.getMember(userArg.id)?.isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.ban.checkIsBot"
                         message = "Lmao someone tried to ban a bot"
@@ -154,8 +155,8 @@ class Moderation: Extension() {
                         content = "Lol you can't ban me or other bots"
                     }
                     return@action
-                } else if(guild?.getRole(MODERATORS)
-                        ?.let {guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole())} == true
+                } else if (guild?.getRole(MODERATORS)
+                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.ban.checkIsMod"
@@ -214,7 +215,7 @@ class Moderation: Extension() {
                     field {
                         name = "User Notification:"
                         value =
-                            if(dm != null) {
+                            if (dm != null) {
                                 "User notified with a direct message"
                             } else {
                                 "Failed to notify user with a direct message"
@@ -271,7 +272,6 @@ class Moderation: Extension() {
                     DISCORD_GREEN,
                     user.asUser()
                 )
-
             }
         }
 
@@ -289,7 +289,7 @@ class Moderation: Extension() {
                 val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
                 val userArg = arguments.userArgument
 
-                if(guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild?.getMember(userArg.id)?.isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.soft-ban.checkIsBot"
                         message = "Lmao someone tried to ban a bot"
@@ -299,8 +299,8 @@ class Moderation: Extension() {
                         content = "Lol you can't ban me or other bots"
                     }
                     return@action
-                } else if(guild?.getRole(MODERATORS)
-                        ?.let {guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole())} == true
+                } else if (guild?.getRole(MODERATORS)
+                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.soft-ban.checkIsMod"
@@ -359,7 +359,7 @@ class Moderation: Extension() {
                     field {
                         name = "User Notification:"
                         value =
-                            if(dm != null) {
+                            if (dm != null) {
                                 "User notified with a direct message"
                             } else {
                                 "Failed to notify user with a direct message"
@@ -393,7 +393,7 @@ class Moderation: Extension() {
                 val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
                 val userArg = arguments.userArgument
 
-                if(guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild?.getMember(userArg.id)?.isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.kick.checkIsBot"
                         message = "Lmao someone tried to kick a bot"
@@ -403,8 +403,8 @@ class Moderation: Extension() {
                         content = "Lol you can't kick me or other bots"
                     }
                     return@action
-                } else if(guild?.getRole(MODERATORS)
-                        ?.let {guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole())} == true
+                } else if (guild?.getRole(MODERATORS)
+                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.kick.checkIsMod"
@@ -455,7 +455,7 @@ class Moderation: Extension() {
                     field {
                         name = "User Notification:"
                         value =
-                            if(dm != null) {
+                            if (dm != null) {
                                 "User notified with a direct message"
                             } else {
                                 "Failed to notify user with a direct message"
@@ -483,7 +483,7 @@ class Moderation: Extension() {
             action {
                 val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
 
-                if(arguments.embedMessage) {
+                if (arguments.embedMessage) {
                     channel.createEmbed {
                         color = DISCORD_BLURPLE
                         description = arguments.messageArgument
@@ -505,7 +505,7 @@ class Moderation: Extension() {
                     }
                 }
 
-                respond {content = "Command used"}
+                respond { content = "Command used" }
 
                 ResponseHelper.responseEmbedInChannel(
                     actionLog,
@@ -535,7 +535,7 @@ class Moderation: Extension() {
                     playing(arguments.presenceArgument)
                 }
 
-                respond {content = "Presence set to `${arguments.presenceArgument}`"}
+                respond { content = "Presence set to `${arguments.presenceArgument}`" }
 
                 ResponseHelper.responseEmbedInChannel(
                     actionLog,
@@ -582,12 +582,14 @@ class Moderation: Extension() {
                             style = ButtonStyle.Success
 
                             action {
-                                respond {content = "Shutting down..."}
-                                ResponseHelper.responseEmbedInChannel(actionLog,
+                                respond { content = "Shutting down..." }
+                                ResponseHelper.responseEmbedInChannel(
+                                    actionLog,
                                     "Shutting Down!",
                                     null,
                                     DISCORD_RED,
-                                    user.asUser())
+                                    user.asUser()
+                                )
                                 kord.shutdown()
                                 exitProcess(0)
                             }
@@ -598,7 +600,7 @@ class Moderation: Extension() {
                             style = ButtonStyle.Danger
 
                             action {
-                                respond {content = "Shutdown aborted."}
+                                respond { content = "Shutdown aborted." }
                             }
                         }
                     }
@@ -677,7 +679,7 @@ class Moderation: Extension() {
                     field {
                         name = "User notification"
                         value =
-                            if(dm != null) {
+                            if (dm != null) {
                                 "User notified with a direct message"
                             } else {
                                 "Failed to notify user with a direct message"
@@ -709,8 +711,8 @@ class Moderation: Extension() {
                 val userArg = arguments.userArgument
                 val duration = Clock.System.now().plus(arguments.duration, TimeZone.currentSystemDefault())
 
-                if(guild?.getMember(userArg.id)?.isBot == true || guild?.getRole(MODERATORS)
-                        ?.let {guild?.getMember(userArg.id)?.hasRole(it.asRole())} == true
+                if (guild?.getMember(userArg.id)?.isBot == true || guild?.getRole(MODERATORS)
+                    ?.let { guild?.getMember(userArg.id)?.hasRole(it.asRole()) } == true
                 ) {
                     respond {
                         content = "You cannot timeout a moderator/bot!"
@@ -727,8 +729,8 @@ class Moderation: Extension() {
                     userArg,
                     "You have been timed out in ${guild?.fetchGuild()?.name}",
                     "**Duration:**\n${
-                        duration.toDiscord(TimestampType.Default) + "(" + arguments.duration.toString()
-                            .replace("PT", "") + ")"
+                    duration.toDiscord(TimestampType.Default) + "(" + arguments.duration.toString()
+                        .replace("PT", "") + ")"
                     }\n**Reason:**\n${arguments.reason}",
                     null
                 )
@@ -777,7 +779,7 @@ class Moderation: Extension() {
                     field {
                         name = "User notification"
                         value =
-                            if(dm != null) {
+                            if (dm != null) {
                                 "User notified with a direct message"
                             } else {
                                 "Failed to notify user with a direct message "
@@ -847,55 +849,55 @@ class Moderation: Extension() {
         }
     }
 
-    inner class ClearArgs: Arguments() {
+    inner class ClearArgs : Arguments() {
 
         val messages by int("messages", "Messages")
     }
 
-    inner class KickArgs: Arguments() {
+    inner class KickArgs : Arguments() {
 
         val userArgument by user("kickUser", "Person to kick")
         val reason by defaultingString("reason", "The reason for the Kick", "No Reason Provided")
     }
 
-    inner class BanArgs: Arguments() {
+    inner class BanArgs : Arguments() {
 
         val userArgument by user("banUser", "Person to ban")
         val messages by int("messages", "Messages")
         val reason by defaultingString("reason", "The reason for the ban", "No Reason Provided")
     }
 
-    inner class UnbanArgs: Arguments() {
+    inner class UnbanArgs : Arguments() {
 
         val userArgument by user("unbanUserId", "Person Unbanned")
     }
 
-    inner class SoftBanArgs: Arguments() {
+    inner class SoftBanArgs : Arguments() {
 
         val userArgument by user("softBanUser", "Person to Soft ban")
         val messages by defaultingInt("messages", "Messages", 3)
         val reason by defaultingString("reason", "The reason for the ban", "No Reason Provided")
     }
 
-    inner class SayArgs: Arguments() {
+    inner class SayArgs : Arguments() {
 
         val messageArgument by string("message", "Message contents")
         val embedMessage by boolean("embed", "Would you like to send as embed")
     }
 
-    inner class PresenceArgs: Arguments() {
+    inner class PresenceArgs : Arguments() {
 
         val presenceArgument by string("presence", "Elixir's presence")
     }
 
-    inner class WarnArgs: Arguments() {
+    inner class WarnArgs : Arguments() {
 
         val userArgument by user("warnUser", "Person to Warn")
         val warnPoints by defaultingInt("points", "Amount of points to add", 10)
         val reason by defaultingString("reason", "Reason for Warn", "No Reason Provided")
     }
 
-    inner class TimeoutArgs: Arguments() {
+    inner class TimeoutArgs : Arguments() {
 
         val userArgument by user("timeoutUser", "Person to timeout")
         val duration by defaultingCoalescingDuration("duration",

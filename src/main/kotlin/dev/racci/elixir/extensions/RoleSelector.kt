@@ -28,9 +28,6 @@ import dev.kord.core.exception.EntityNotFoundException
 import dev.racci.elixir.configPath
 import dev.racci.elixir.database.DatabaseManager
 import dev.racci.elixir.utils.GUILD_ID
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.*
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toSet
@@ -39,8 +36,11 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.Locale
 
-class RoleSelector: Extension() {
+class RoleSelector : Extension() {
 
     override var name = "roles"
 
@@ -51,7 +51,7 @@ class RoleSelector: Extension() {
         val roleSelectors: TomlArray = roles.get("roleselector") as TomlArray
         // TODO: create a way to auto delete if the target channel has changed.
         newSuspendedTransaction {
-            for(resultRow in DatabaseManager.RoleSelector.selectAll()) {
+            for (resultRow in DatabaseManager.RoleSelector.selectAll()) {
                 val channel: GuildMessageChannelBehavior
 
                 try {
@@ -59,14 +59,14 @@ class RoleSelector: Extension() {
                         GUILD_ID,
                         Snowflake(resultRow[DatabaseManager.RoleSelector.channelId])
                     )
-                } catch(e: EntityNotFoundException) {
+                } catch (e: EntityNotFoundException) {
                     DatabaseManager.RoleSelector.deleteWhere {
                         DatabaseManager.RoleSelector.name eq resultRow[DatabaseManager.RoleSelector.name]
                     }
                     continue
                 }
 
-                if(channel.getMessageOrNull(
+                if (channel.getMessageOrNull(
                         Snowflake(resultRow[DatabaseManager.RoleSelector.messageId])
                     ) == null
                 ) {
@@ -76,7 +76,7 @@ class RoleSelector: Extension() {
                 }
             }
         }
-        for(rsls in roleSelectors) {
+        for (rsls in roleSelectors) {
             val rsl = rsls as TomlTable
             addRoleSelector(
                 rsl["name"] as String,
@@ -101,7 +101,7 @@ class RoleSelector: Extension() {
                 DatabaseManager.RoleSelector.name eq selectorName
             }.singleOrNull()?.get(DatabaseManager.RoleSelector.messageId)
 
-            if(localMessageId == null) {
+            if (localMessageId == null) {
                 message = channel.createMessage {
                     addFile(Paths.get(attachment))
                 }
@@ -129,8 +129,8 @@ class RoleSelector: Extension() {
         roleBehavior: RoleBehavior,
         context: PublicInteractionButtonContext
     ): String? { // Return a nullable string for easily returning if we need to
-        return if(member.asMember().hasRole(roleBehavior)) {
-            if(removable) {
+        return if (member.asMember().hasRole(roleBehavior)) {
+            if (removable) {
                 member.removeRole(roleBehavior.id)
             } else {
                 context.interactionResponse.followUpEphemeral {
@@ -149,11 +149,11 @@ class RoleSelector: Extension() {
         selectorRoles: List<RoleBehavior>,
         context: PublicInteractionButtonContext,
     ): String? {
-        if(limit == -1L) return ""
+        if (limit == -1L) return ""
         val conflictingRoles = member.asMember().roles.filter(selectorRoles::contains)
-        if(conflictingRoles.count() < limit) return ""
-        return if(autoRemoveOnLimit) {
-            for(role in conflictingRoles.toSet()) {
+        if (conflictingRoles.count() < limit) return ""
+        return if (autoRemoveOnLimit) {
+            for (role in conflictingRoles.toSet()) {
                 member.removeRole(role.id, "Maximum Amount of roles for role selector, auto removing to give new role.")
             }
             ""
@@ -174,7 +174,7 @@ class RoleSelector: Extension() {
     ): String? {
         incompatibleWith ?: return ""
         val incompatible = member.asMember().getAnyRole(incompatibleWith)
-        return if(incompatible != null) {
+        return if (incompatible != null) {
             context.interactionResponse.followUpEphemeral {
                 ephemeral = true
                 content = "Sorry, You ${roleBehavior.fetchRole().name} is incompatible with ${incompatible.fetchRole().name}"
@@ -190,7 +190,7 @@ class RoleSelector: Extension() {
     ): String? {
         roleLong ?: return ""
         val requiredRole = RoleBehavior(GUILD_ID, Snowflake(roleLong), kord)
-        return if(!member.asMember().hasRole(requiredRole)) {
+        return if (!member.asMember().hasRole(requiredRole)) {
             context.interactionResponse.followUpEphemeral {
                 ephemeral = true
                 content = "Sorry, You need the ${requiredRole.fetchRole().name} to be able to get this."
@@ -216,10 +216,10 @@ class RoleSelector: Extension() {
                 // Remove all so we have the order and everything fully up to date
                 removeAll()
 
-                if(roles == null) return@components
+                if (roles == null) return@components
                 val selectorRoles = roles.map { RoleBehavior(GUILD_ID, Snowflake((it as TomlTable)["roleId"] as Long), kord) }
 
-                for(role in roles.asList() as List<TomlTable>) {
+                for (role in roles.asList() as List<TomlTable>) {
                     val roleName: String = role["name"] as String
                     val roleEmoji: String? = role["emoji"] as? String
                     val roleRoleId: Long = role["roleId"] as Long
@@ -229,7 +229,7 @@ class RoleSelector: Extension() {
 
                     publicButton {
                         label = roleName
-                        if(!roleEmoji.isNullOrBlank()) {
+                        if (!roleEmoji.isNullOrBlank()) {
                             val emoji = roleEmoji.split(':', limit = 3)
 
                             partialEmoji = DiscordPartialEmoji.dsl {

@@ -30,15 +30,15 @@ import dev.racci.elixir.utils.MESSAGE_LOGS
 import dev.racci.elixir.utils.MODERATORS
 import dev.racci.elixir.utils.MOD_ACTION_LOG
 import dev.racci.elixir.utils.ResponseHelper
+import kotlinx.datetime.Clock
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
-import kotlinx.datetime.Clock
 
 /**
  * The message reporting feature in the bot
  * @author NoComment1105
  */
-class Report: Extension() {
+class Report : Extension() {
 
     override val name = "report"
 
@@ -57,7 +57,6 @@ class Report: Extension() {
                 }
                 createReport(user, actionLog, messageAuthor, reportedMessage)
             }
-
         }
 
         ephemeralSlashCommand(::ManualReportArgs) {
@@ -140,34 +139,30 @@ class Report: Extension() {
                     option(
                         label = "30-Minute Timeout",
                         value = "30-timeout",
-                    )
-                    {
+                    ) {
                         description = "Timeout the user for 30 minutes."
                     }
                     option(
                         label = "Kick the user.",
                         value = "kick-user",
-                    )
-                    {
+                    ) {
                         description = "Kick the user from the server."
                     }
                     option(
                         label = "Softban the user.",
                         value = "softban-user",
-                    )
-                    {
+                    ) {
                         description = "Softban the user and delete all their messages."
                     }
                     option(
                         label = "Ban the user.",
                         value = "ban-user",
-                    )
-                    {
+                    ) {
                         description = "Ban the user and delete their messages."
                     }
                     action {
                         val actionlog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
-                        when(this.selected[0]) {
+                        when (this.selected[0]) {
                             "10-timeout" -> {
                                 guild?.getMember(messageAuthor!!.id)?.edit {
                                     timeoutUntil = Clock.System.now().plus(Duration.parse("PT10M"))
@@ -280,8 +275,11 @@ class Report: Extension() {
         }
     }
 
-    inner class ManualReportArgs: Arguments() {
+    inner class ManualReportArgs : Arguments() {
 
-        val message by string("message", "Link to the message to report")
+        val message by string {
+            name = "message"
+            description = "Link to the message to report"
+        }
     }
 }

@@ -13,19 +13,22 @@ import dev.racci.elixir.database.DatabaseManager
 import dev.racci.elixir.events.JoinLeaveEvent
 import dev.racci.elixir.events.LogEvents
 import dev.racci.elixir.events.MessageEvents
+import dev.racci.elixir.extensions.RoleSelector
 import dev.racci.elixir.extensions.StatChannels
 import dev.racci.elixir.extensions.commands.moderation.Moderation
 import dev.racci.elixir.extensions.commands.moderation.Report
 import dev.racci.elixir.extensions.commands.util.Custom
 import dev.racci.elixir.extensions.commands.util.Github
 import dev.racci.elixir.extensions.commands.util.Ping
-import dev.racci.elixir.extensions.RoleSelector
 import dev.racci.elixir.support.ThreadInviter
 import dev.racci.elixir.utils.BOT_TOKEN
 import dev.racci.elixir.utils.CONFIG_PATH
 import dev.racci.elixir.utils.GITHUB_OAUTH
 import dev.racci.elixir.utils.GUILD_ID
 import dev.racci.elixir.utils.SENTRY_DSN
+import mu.KotlinLogging
+import org.kohsuke.github.GitHub
+import org.kohsuke.github.GitHubBuilder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -82,7 +85,6 @@ suspend fun main() {
             sentry {
                 enableIfDSN(SENTRY_DSN)
             }
-
         }
 
         hooks {
@@ -99,7 +101,7 @@ suspend fun main() {
             @Suppress("BlockingMethodInNonBlockingContext")
             github = GitHubBuilder().withOAuthToken(GITHUB_OAUTH).build()
             gitHubLogger.info("Logged into GitHub!")
-        } catch(exception: Exception) {
+        } catch (exception: Exception) {
             exception.printStackTrace()
             gitHubLogger.error("Failed to log into GitHub!")
             throw Exception(exception)

@@ -23,12 +23,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.statement.HttpResponse
 import io.ktor.util.cio.toByteArray
+import kotlinx.datetime.Clock
 import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
 import kotlin.time.ExperimentalTime
-import kotlinx.datetime.Clock
 
-class MessageEvents: Extension() {
+class MessageEvents : Extension() {
 
     override val name = "messageevents"
 
@@ -45,11 +45,11 @@ class MessageEvents: Extension() {
             action {
                 val eventMessage = event.message.asMessageOrNull()
 
-                eventMessage.attachments.forEach {attachment->
+                eventMessage.attachments.forEach { attachment ->
                     val attachmentFileName = attachment.filename
                     val attachmentFileExtension = attachmentFileName.substring(attachmentFileName.lastIndexOf(".") + 1)
 
-                    if(attachmentFileExtension in LOG_FILE_EXTENSIONS) {
+                    if (attachmentFileExtension in LOG_FILE_EXTENSIONS) {
                         var confirmationMessage: Message? = null
 
                         confirmationMessage = ResponseHelper.responseEmbedInChannel(
@@ -69,7 +69,7 @@ class MessageEvents: Extension() {
                                             category = "events.messageevents.loguploading.uploadAccept"
                                             message = "Upload accepted"
                                         }
-                                        if(event.interaction.user.id == eventMessage.author?.id) {
+                                        if (event.interaction.user.id == eventMessage.author?.id) {
                                             confirmationMessage!!.delete()
 
                                             val uploadMessage = eventMessage.channel.createEmbed {
@@ -88,7 +88,7 @@ class MessageEvents: Extension() {
 
                                                 val builder = StringBuilder()
 
-                                                if(attachmentFileExtension != "gz") {
+                                                if (attachmentFileExtension != "gz") {
                                                     builder.append(logBytes.decodeToString())
                                                 } else {
                                                     val bis = ByteArrayInputStream(logBytes)
@@ -117,11 +117,13 @@ class MessageEvents: Extension() {
                                                         }
                                                     }
                                                 }
-                                            } catch(e: Exception) {
+                                            } catch (e: Exception) {
                                                 uploadMessage.edit {
-                                                    ResponseHelper.failureEmbed(event.interaction.getChannel(),
+                                                    ResponseHelper.failureEmbed(
+                                                        event.interaction.getChannel(),
                                                         "Failed to upload `$attachmentFileName` to Hastebin",
-                                                        e.toString())
+                                                        e.toString()
+                                                    )
                                                 }
                                                 sentry.breadcrumb(BreadcrumbType.Error) {
                                                     category = "events.messageevnets.loguploading.UploadTask"
@@ -142,7 +144,7 @@ class MessageEvents: Extension() {
                                     style = ButtonStyle.Secondary
 
                                     action {
-                                        if(event.interaction.user.id == eventMessage.author?.id) {
+                                        if (event.interaction.user.id == eventMessage.author?.id) {
                                             confirmationMessage!!.delete()
                                             sentry.breadcrumb(BreadcrumbType.Info) {
                                                 category = "events.messagevents.loguploading.uploadDeny"
@@ -171,9 +173,11 @@ class MessageEvents: Extension() {
             body = text
         }.content.toByteArray().decodeToString()
 
-        if(response.contains("\"key\"")) {
-            response = "https://www.toptal.com/developers/hastebin/" + response.substring(response.indexOf(":") + 2,
-                response.length - 2)
+        if (response.contains("\"key\"")) {
+            response = "https://www.toptal.com/developers/hastebin/" + response.substring(
+                response.indexOf(":") + 2,
+                response.length - 2
+            )
         }
 
         client.close()

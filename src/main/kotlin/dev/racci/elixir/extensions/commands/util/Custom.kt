@@ -10,15 +10,15 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
 import dev.racci.elixir.configPath
+import kotlinx.datetime.Clock
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlinx.datetime.Clock
 
 /**
  * This class reads in the config TOML file and converts each array of info into a usable discord slash command
  * @author IMS212
  */
-class Custom: Extension() {
+class Custom : Extension() {
 
     override var name = "custom"
 
@@ -26,9 +26,10 @@ class Custom: Extension() {
 
     override suspend fun setup() {
         val commands: TomlArray = commands.get("command") as TomlArray
-        for(cmds in commands) {
+        for (cmds in commands) {
             val cmd = cmds as TomlTable
-            addCommand(cmd.get("name") as String,
+            addCommand(
+                cmd.get("name") as String,
                 cmd.getOrDefault("help", "An Elixir bot command.") as String,
                 cmd.getOrDefault("title", "No title") as String,
                 cmd.getOrDefault("description", "") as String,
@@ -48,7 +49,7 @@ class Custom: Extension() {
 
             name = names
             description = desc
-            if(subCmds == null) {
+            if (subCmds == null) {
                 action {
                     respond {
                         embed {
@@ -60,7 +61,7 @@ class Custom: Extension() {
                     }
                 }
             } else {
-                for(subs in subCmds) {
+                for (subs in subCmds) {
                     val sub = subs as TomlTable
                     publicSubCommand {
                         name = sub.get("name") as String

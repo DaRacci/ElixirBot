@@ -15,10 +15,6 @@ import dev.kord.rest.builder.message.create.embed
 import dev.racci.elixir.github
 import dev.racci.elixir.utils.ResponseHelper
 import io.ktor.utils.io.errors.IOException
-import java.text.DecimalFormat
-import kotlin.math.floor
-import kotlin.math.ln
-import kotlin.math.pow
 import kotlinx.datetime.Clock
 import org.kohsuke.github.GHDirection
 import org.kohsuke.github.GHFileNotFoundException
@@ -30,8 +26,12 @@ import org.kohsuke.github.GHPullRequest
 import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GHUser
 import org.kohsuke.github.PagedIterator
+import java.text.DecimalFormat
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.pow
 
-class Github: Extension() {
+class Github : Extension() {
 
     override val name = "github"
 
@@ -50,7 +50,7 @@ class Github: Extension() {
                 description = "Look up an issue on a specific repository"
 
                 action {
-                    if(!arguments.repository.contains("/")) {
+                    if (!arguments.repository.contains("/")) {
                         sentry.breadcrumb(BreadcrumbType.Error) {
                             category = "command.github.issue.InputCheck"
                             message = "Input missing /"
@@ -74,14 +74,14 @@ class Github: Extension() {
                             category = "command.github.issue.getIssue"
                             message = "Found issue"
                         }
-                    } catch(e: Exception) {
+                    } catch (e: Exception) {
                         val iterator: PagedIterator<GHIssue>? = github?.searchIssues()
                             ?.q("${arguments.issue} repo:${arguments.repository}")
                             ?.order(GHDirection.DESC)
                             ?.list()
                             ?._iterator(1)
 
-                        if(iterator!!.hasNext()) {
+                        if (iterator!!.hasNext()) {
                             issue = iterator.next()
                         } else {
                             sentry.breadcrumb(BreadcrumbType.Error) {
@@ -108,7 +108,7 @@ class Github: Extension() {
                             var merged = false
                             var draft = false
 
-                            if(issue!!.isPullRequest) {
+                            if (issue!!.isPullRequest) {
                                 title = issue.title
                                 url = issue.htmlUrl.toString()
                                 description =
@@ -118,7 +118,7 @@ class Github: Extension() {
                                     val pull: GHPullRequest = issue.repository.getPullRequest(issue.number)
                                     merged = pull.isMerged
                                     draft = pull.isDraft
-                                } catch(ioException: IOException) {
+                                } catch (ioException: IOException) {
                                     sentry.breadcrumb(BreadcrumbType.Error) {
                                         category = "command.github.issue.CheckPRStatus"
                                         message = "Error initializing PR wtf"
@@ -138,8 +138,8 @@ class Github: Extension() {
 
                             field {
 
-                                if(issue.body != null) {
-                                    value = if(issue.body.length > 400) {
+                                if (issue.body != null) {
+                                    value = if (issue.body.length > 400) {
                                         issue.body.substring(0, 399) + "..."
                                     } else {
                                         issue.body
@@ -147,21 +147,21 @@ class Github: Extension() {
                                 }
                             }
 
-                            if(merged) {
+                            if (merged) {
                                 color = dev.kord.common.Color(111, 66, 193)
                                 field {
                                     name = "Status:"
                                     value = "Merged"
                                     inline = false
                                 }
-                            } else if(!open) {
+                            } else if (!open) {
                                 color = dev.kord.common.Color(203, 36, 49)
                                 field {
                                     name = "Status:"
                                     value = "Closed"
                                     inline = false
                                 }
-                            } else if(draft) {
+                            } else if (draft) {
                                 color = dev.kord.common.Color(255, 255, 255)
                                 field {
                                     name = "Status:"
@@ -179,7 +179,7 @@ class Github: Extension() {
 
                             try {
                                 val author: GHUser = issue.user
-                                if(author.name != null) {
+                                if (author.name != null) {
                                     field {
                                         name = "Author:"
                                         value =
@@ -193,7 +193,7 @@ class Github: Extension() {
                                         inline = false
                                     }
                                 }
-                            } catch(ioException: IOException) {
+                            } catch (ioException: IOException) {
                                 field {
                                     name = "Author:"
                                     value = "Unknown Author"
@@ -210,18 +210,18 @@ class Github: Extension() {
 
                                 val labels = mutableListOf<CharSequence>()
 
-                                for(label: GHLabel in issue.labels) {
+                                for (label: GHLabel in issue.labels) {
                                     labels.add(label.name)
                                 }
 
-                                if(labels.size > 0) {
+                                if (labels.size > 0) {
                                     field {
                                         name = "Labels:"
                                         value = labels.joinToString(", ")
                                         inline = false
                                     }
                                 }
-                            } catch(ioException: IOException) {
+                            } catch (ioException: IOException) {
                                 ioException.printStackTrace()
                             }
                             footer {
@@ -240,16 +240,18 @@ class Github: Extension() {
 
                 action {
 
-                    if(!arguments.repository.contains("/")) {
+                    if (!arguments.repository.contains("/")) {
                         sentry.breadcrumb(BreadcrumbType.Error) {
                             category = "command.github.repository.InputCheck"
                             message = "Input missing /"
                         }
                         respond {
                             content = "ohno"
-                            ResponseHelper.failureEmbed(event.interaction.getChannel(),
+                            ResponseHelper.failureEmbed(
+                                event.interaction.getChannel(),
                                 "Make sure your input is formatted like this:",
-                                "Format: `User/Repo` or `Org/Repo` \n For example: `IrisShaders/Iris`")
+                                "Format: `User/Repo` or `Org/Repo` \n For example: `IrisShaders/Iris`"
+                            )
                         }
                         return@action
                     }
@@ -262,16 +264,18 @@ class Github: Extension() {
                             category = "command.github.repository.getRepository"
                             message = "Repository found"
                         }
-                    } catch(exception: Exception) {
+                    } catch (exception: Exception) {
                         sentry.breadcrumb(BreadcrumbType.Error) {
                             category = "command.github.repository.getRepository"
                             message = "Repository not found"
                         }
                         respond {
                             content = "ohno"
-                            ResponseHelper.failureEmbed(event.interaction.getChannel(),
+                            ResponseHelper.failureEmbed(
+                                event.interaction.getChannel(),
                                 "Invalid repository name. Make sure this repository exists!",
-                                null)
+                                null
+                            )
                         }
                         repo = null
                         return@action
@@ -284,7 +288,7 @@ class Github: Extension() {
                                 url = repo?.htmlUrl.toString()
                                 description = repo?.description
 
-                                if(repo!!.license != null) {
+                                if (repo!!.license != null) {
                                     field {
                                         name = "License:"
                                         value = repo.license.name
@@ -312,7 +316,7 @@ class Github: Extension() {
                                     value = bytesToFriendly(repo.size)
                                     inline = false
                                 }
-                            } catch(ioException: IOException) {
+                            } catch (ioException: IOException) {
                                 ioException.printStackTrace()
                             }
                         }
@@ -332,16 +336,18 @@ class Github: Extension() {
                             category = "command.github.user.getUser"
                             message = "User found"
                         }
-                    } catch(exception: GHFileNotFoundException) {
+                    } catch (exception: GHFileNotFoundException) {
                         sentry.breadcrumb(BreadcrumbType.Error) {
                             category = "command.github.user.getUser"
                             message = "Unable to find user"
                         }
                         respond {
                             content = "ohno"
-                            ResponseHelper.failureEmbed(event.interaction.getChannel(),
+                            ResponseHelper.failureEmbed(
+                                event.interaction.getChannel(),
                                 "Invalid Username. Make sure this user exists",
-                                null)
+                                null
+                            )
                         }
                         return@action
                     }
@@ -349,7 +355,7 @@ class Github: Extension() {
                     try {
                         val isOrg: Boolean = ghUser?.type.equals("Organization")
 
-                        if(!isOrg) {
+                        if (!isOrg) {
 
                             sentry.breadcrumb(BreadcrumbType.Info) {
                                 category = "command.github.user.isOrg"
@@ -374,7 +380,7 @@ class Github: Extension() {
                                         inline = false
                                     }
 
-                                    if(ghUser!!.company != null) {
+                                    if (ghUser!!.company != null) {
                                         field {
                                             name = "Company"
                                             value = ghUser.company
@@ -382,7 +388,7 @@ class Github: Extension() {
                                         }
                                     }
 
-                                    if(!ghUser.blog.equals("")) {
+                                    if (!ghUser.blog.equals("")) {
                                         field {
                                             name = "Website:"
                                             value = ghUser.blog
@@ -390,7 +396,7 @@ class Github: Extension() {
                                         }
                                     }
 
-                                    if(ghUser.twitterUsername != null) {
+                                    if (ghUser.twitterUsername != null) {
                                         field {
                                             name = "Twitter:"
                                             value =
@@ -439,8 +445,7 @@ class Github: Extension() {
                                 }
                             }
                         }
-
-                    } catch(ioException: IOException) {
+                    } catch (ioException: IOException) {
                         ioException.printStackTrace()
                     }
                 }
@@ -452,7 +457,7 @@ class Github: Extension() {
         val k = 1024
         val measure = arrayOf("B", "KB", "MB", "GB", "TB")
 
-        val i: Double = if(bytes == 0) {
+        val i: Double = if (bytes == 0) {
             0.0
         } else {
             floor(ln(bytes.toDouble()) / ln(k.toDouble()))
@@ -463,19 +468,22 @@ class Github: Extension() {
         return df.format(bytes / k.toDouble().pow(i)) + " " + measure[(i + 1).toInt()]
     }
 
-    inner class IssueArgs: Arguments() {
+    inner class IssueArgs : Arguments() {
 
         val repository by string("repository", "The GitHub repository you would like to search")
         val issue by int("issue-number", "The issue number you would like to search for")
     }
 
-    inner class RepoArgs: Arguments() {
+    inner class RepoArgs : Arguments() {
 
         val repository by string("repository", "The github repository you would like to search for")
     }
 
-    inner class UserArgs: Arguments() {
+    inner class UserArgs : Arguments() {
 
-        val username by string("username", "The name of the User/Organisation you wish to search for")
+        val username by string {
+            name = "username"
+            description = "The name of the User/Organisation you wish to search for"
+        }
     }
 }

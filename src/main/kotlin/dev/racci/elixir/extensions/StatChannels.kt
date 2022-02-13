@@ -12,9 +12,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.features.ServerResponseException
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.get
-import java.util.*
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -22,8 +19,11 @@ import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
+import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
-class StatChannels: Extension() {
+class StatChannels : Extension() {
 
     override val name: String = "statchannels"
 
@@ -39,24 +39,24 @@ class StatChannels: Extension() {
     private suspend fun checker() {
         var members = 0
         var status = false
-        val client = HttpClient {install(JsonFeature)}
+        val client = HttpClient { install(JsonFeature) }
 
-        while(loaded) {
+        while (loaded) {
             // Time it out in 1.5 seconds so we don't end up blocked
             val tStatus = withTimeoutOrNull<Query?>(1500.milliseconds) {
                 try {
                     return@withTimeoutOrNull client.get("https://mcapi.xdefcon.com/server/$STATUS_SERVER/status/json")
-                } catch(ignored: ServerResponseException) {return@withTimeoutOrNull null}
+                } catch (ignored: ServerResponseException) { return@withTimeoutOrNull null }
             }
             // We only want to change the name if it needs changing
-            if(tStatus != null && status != tStatus.online) {
+            if (tStatus != null && status != tStatus.online) {
                 status = !status
                 kord.unsafe.voiceChannel(GUILD_ID, STATUS_CHANNEL).edit {
-                    name = "Status: ${ tStatus.serverStatus.replaceFirstChar { if(it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } }"
+                    name = "Status: ${ tStatus.serverStatus.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } }"
                 }
             }
             val tMembers = kord.getGuild(GUILD_ID)?.members?.count() ?: -1
-            if(members != tMembers) {
+            if (members != tMembers) {
                 members = tMembers
                 kord.unsafe.voiceChannel(GUILD_ID, MEMBER_COUNTER).edit {
                     name = "Members: $members"

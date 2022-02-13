@@ -1,7 +1,6 @@
 @file:OptIn(ExperimentalTime::class)
 package dev.racci.elixir.extensions.commands.util
 
-import com.kotlindiscord.kord.extensions.DISCORD_GREEN
 import com.kotlindiscord.kord.extensions.DISCORD_RED
 import com.kotlindiscord.kord.extensions.DISCORD_YELLOW
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -12,11 +11,11 @@ import dev.kord.rest.builder.message.create.embed
 import dev.racci.elixir.utils.GUILD_ID
 import dev.racci.elixir.utils.MOD_ACTION_LOG
 import dev.racci.elixir.utils.ResponseHelper
-import kotlin.time.ExperimentalTime
 import kotlinx.datetime.Clock
+import kotlin.time.ExperimentalTime
 
 @Suppress("PrivatePropertyName")
-class Ping: Extension() {
+class Ping : Extension() {
 
     override val name = "ping"
 

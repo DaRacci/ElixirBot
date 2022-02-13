@@ -14,10 +14,10 @@ import dev.kord.core.entity.channel.thread.TextChannelThread
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.racci.elixir.utils.SUPPORT_CHANNEL
 import dev.racci.elixir.utils.SUPPORT_TEAM
-import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.last
+import kotlin.time.ExperimentalTime
 
-class ThreadInviter: Extension() {
+class ThreadInviter : Extension() {
 
     override val name = "threads"
 
@@ -34,15 +34,15 @@ class ThreadInviter: Extension() {
                 var userThreadExists = false
                 var existingUserThread: TextChannelThread? = null
                 val textChannel = event.message.getChannel() as TextChannel
-                //TODO: this is incredibly stupid, there has to be a better way to do this.
+                // TODO: this is incredibly stupid, there has to be a better way to do this.
                 textChannel.activeThreads.collect {
-                    if(it.name == "Support thread for " + event.member!!.asUser().username) {
+                    if (it.name == "Support thread for " + event.member!!.asUser().username) {
                         userThreadExists = true
                         existingUserThread = it
                     }
                 }
 
-                if(userThreadExists) {
+                if (userThreadExists) {
                     val response = event.message.respond {
                         content =
                             "You already have a thread, please talk about your issue in it. " + existingUserThread!!.mention
@@ -61,10 +61,10 @@ class ThreadInviter: Extension() {
                     editMessage.edit {
                         this.content =
                             event.member!!.asUser().mention + ", the " + event.getGuild()
-                                ?.getRole(SUPPORT_TEAM)?.mention + " will be with you shortly!"
+                            ?.getRole(SUPPORT_TEAM)?.mention + " will be with you shortly!"
                     }
 
-                    if(textChannel.messages.last().author?.id == kord.selfId) {
+                    if (textChannel.messages.last().author?.id == kord.selfId) {
                         textChannel.deleteMessage(
                             textChannel.messages.last().id,
                             "Automatic deletion of thread creation message"
@@ -79,5 +79,4 @@ class ThreadInviter: Extension() {
             }
         }
     }
-
 }

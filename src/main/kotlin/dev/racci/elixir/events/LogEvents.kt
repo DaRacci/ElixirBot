@@ -21,7 +21,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.periodUntil
 
-class LogEvents: Extension() {
+class LogEvents : Extension() {
 
     override val name = "LogEvents"
 
@@ -30,7 +30,7 @@ class LogEvents: Extension() {
 
         event<MessageDeleteEvent> {
             action {
-                if(event.message?.asMessageOrNull()?.author?.isBot == true) return@action
+                if (event.message?.asMessageOrNull()?.author?.isBot == true) return@action
                 val messageContent = event.message?.asMessageOrNull()?.content.toString()
                 val eventMessage = event.message
                 val messageLocation = event.channel.id.value
@@ -64,14 +64,14 @@ class LogEvents: Extension() {
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "events.messageevents.MessageDeleted"
                     message = "A message was deleted"
-                    data["content"] = messageContent.ifEmpty {"Failed to get content of message"}
+                    data["content"] = messageContent.ifEmpty { "Failed to get content of message" }
                 }
             }
         }
 
         event<MessageUpdateEvent> {
             action {
-                if(event.message.asMessageOrNull()?.author?.isBot == true) return@action
+                if (event.message.asMessageOrNull()?.author?.isBot == true) return@action
                 val messageContentBefore = event.old?.content.toString()
                 val messageContentAfter = event.new.content.toString()
                 val eventMessage = event.message.asMessageOrNull()
@@ -119,8 +119,8 @@ class LogEvents: Extension() {
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "events.LogEvents.MessageUpdated"
                     message = "A message was updated"
-                    data["oldContent"] = messageContentBefore.ifEmpty {"Failed to get content of message"}
-                    data["newContent"] = messageContentAfter.ifEmpty {"Failed to get content of message"}
+                    data["oldContent"] = messageContentBefore.ifEmpty { "Failed to get content of message" }
+                    data["newContent"] = messageContentAfter.ifEmpty { "Failed to get content of message" }
                 }
             }
         }
@@ -259,8 +259,5 @@ class LogEvents: Extension() {
                 }
             }
         }
-
     }
-
-
 }

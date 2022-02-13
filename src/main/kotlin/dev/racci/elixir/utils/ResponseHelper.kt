@@ -27,8 +27,8 @@ object ResponseHelper {
         embedDescription: String?,
     ): Message {
         return channel.createEmbed {
-            if(embedTitle != null) title = embedTitle
-            if(embedDescription != null) description = embedDescription
+            if (embedTitle != null) title = embedTitle
+            if (embedDescription != null) description = embedDescription
             color = DISCORD_RED
             timestamp = Clock.System.now()
         }
@@ -54,11 +54,11 @@ object ResponseHelper {
         requestedBy: User?,
     ): Message {
         return channel.createEmbed {
-            if(embedTitle != null) title = embedTitle
-            if(embedDescription != null) description = embedDescription
+            if (embedTitle != null) title = embedTitle
+            if (embedDescription != null) description = embedDescription
             color = embedColor ?: DISCORD_BLACK
             timestamp = Clock.System.now()
-            if(requestedBy != null) {
+            if (requestedBy != null) {
                 footer {
                     text = requestedBy.tag
                     icon = requestedBy.avatar?.url
@@ -85,8 +85,8 @@ object ResponseHelper {
     ): Message? {
         return user.dm {
             embed {
-                if(embedTitle != null) title = embedTitle
-                if(embedDescription != null) description = embedDescription
+                if (embedTitle != null) title = embedTitle
+                if (embedDescription != null) description = embedDescription
                 color = embedColor ?: DISCORD_BLACK
                 timestamp = Clock.System.now()
             }
