@@ -1,6 +1,7 @@
 package dev.racci.elixir.events
 
 import com.kotlindiscord.kord.extensions.DISCORD_PINK
+import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.sentry.BreadcrumbType
@@ -13,8 +14,7 @@ import dev.kord.core.event.guild.MemberLeaveEvent
 import dev.kord.core.event.message.MessageBulkDeleteEvent
 import dev.kord.core.event.message.MessageDeleteEvent
 import dev.kord.core.event.message.MessageUpdateEvent
-import dev.racci.elixir.utils.GUILD_ID
-import dev.racci.elixir.utils.MESSAGE_LOGS
+import dev.racci.elixir.utils.DatabaseHelper
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.toSet
 import kotlinx.datetime.Clock
@@ -26,10 +26,10 @@ class LogEvents : Extension() {
     override val name = "LogEvents"
 
     override suspend fun setup() {
-        val logChannel = kord.getGuild(GUILD_ID)?.getChannel(MESSAGE_LOGS) as GuildMessageChannelBehavior
-
         event<MessageDeleteEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 if (event.message?.asMessageOrNull()?.author?.isBot == true) return@action
                 val messageContent = event.message?.asMessageOrNull()?.content.toString()
                 val eventMessage = event.message
@@ -71,6 +71,8 @@ class LogEvents : Extension() {
 
         event<MessageUpdateEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 if (event.message.asMessageOrNull()?.author?.isBot == true) return@action
                 val messageContentBefore = event.old?.content.toString()
                 val messageContentAfter = event.new.content.toString()
@@ -127,6 +129,8 @@ class LogEvents : Extension() {
 
         event<MessageBulkDeleteEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val deletedCount = event.messages.count()
                 val messageLocation = event.channel.id.value
 
@@ -155,6 +159,8 @@ class LogEvents : Extension() {
 
         event<InviteCreateEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val inviter = event.inviterMember?.nicknameMention ?: event.inviterId.toString()
                 val maxUses = event.maxUses.toString()
                 val maxAge = event.maxAge.toString()
@@ -193,6 +199,8 @@ class LogEvents : Extension() {
 
         event<MemberJoinEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val eventMember = event.member
                 val guildMemberCount = event.getGuild().members.count()
                 val now = Clock.System.now()
@@ -225,6 +233,8 @@ class LogEvents : Extension() {
 
         event<MemberLeaveEvent> {
             action {
+                val guild = guildFor(event)
+                val logChannel = DatabaseHelper.getConfig(guild?.id)?.logChannel?.let { guild!!.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val eventMember = event.old ?: return@action
                 val guildMemberCount = event.getGuild().members.count()
                 val now = Clock.System.now()

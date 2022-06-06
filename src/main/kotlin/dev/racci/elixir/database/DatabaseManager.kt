@@ -1,22 +1,10 @@
 package dev.racci.elixir.database
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
-import dev.racci.elixir.utils.JDBC_URL
-import io.ktor.utils.io.errors.IOException
-import mu.KotlinLogging
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.nio.file.Files
-import java.nio.file.Path
-
 /**
  * The Database system within the bot
  * @author chalkyjeans
  */
-object DatabaseManager {
+/* object DatabaseManager {
 
     private val logger = KotlinLogging.logger { }
     private val config = HikariConfig()
@@ -70,4 +58,4 @@ object DatabaseManager {
             SchemaUtils.createMissingTablesAndColumns(RoleSelector)
         }
     }
-}
+} */

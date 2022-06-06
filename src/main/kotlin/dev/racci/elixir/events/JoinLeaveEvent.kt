@@ -1,9 +1,8 @@
-@file:OptIn(ExperimentalTime::class)
-
 package dev.racci.elixir.events
 
 import com.kotlindiscord.kord.extensions.DISCORD_GREEN
 import com.kotlindiscord.kord.extensions.DISCORD_RED
+import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.sentry.BreadcrumbType
@@ -11,10 +10,9 @@ import dev.kord.core.behavior.channel.GuildMessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.event.guild.MemberJoinEvent
 import dev.kord.core.event.guild.MemberLeaveEvent
-import dev.racci.elixir.utils.JOIN_CHANNEL
+import dev.racci.elixir.utils.DatabaseHelper
 import kotlinx.coroutines.flow.count
 import kotlinx.datetime.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * The join and leave logging for Members in the guild. More accurate join and leave times for users
@@ -27,9 +25,10 @@ class JoinLeaveEvent : Extension() {
     override suspend fun setup() {
         event<MemberJoinEvent> {
             action {
+                val channel = DatabaseHelper.getConfig(guildFor(event)?.id)?.joinChannel ?: return@action
                 val eventMember = event.member
                 val guildMemberCount = event.getGuild().members.count()
-                val joinChannel = event.guild.getChannel(JOIN_CHANNEL) as GuildMessageChannelBehavior
+                val joinChannel = event.guild.getChannel(channel) as GuildMessageChannelBehavior
 
                 joinChannel.createEmbed {
                     color = DISCORD_GREEN
@@ -59,9 +58,10 @@ class JoinLeaveEvent : Extension() {
         }
         event<MemberLeaveEvent> {
             action {
+                val channel = DatabaseHelper.getConfig(guildFor(event)?.id)?.joinChannel ?: return@action
                 val eventUser = event.user
                 val guildMemberCount = event.getGuild().members.count()
-                val joinChannel = event.guild.getChannel(JOIN_CHANNEL) as GuildMessageChannelBehavior
+                val joinChannel = event.guild.getChannel(channel) as GuildMessageChannelBehavior
 
                 joinChannel.createEmbed {
                     color = DISCORD_RED

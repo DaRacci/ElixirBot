@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalTime::class)
-
 package dev.racci.elixir.support
 
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -15,7 +13,6 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.racci.elixir.utils.SUPPORT_CHANNEL
 import dev.racci.elixir.utils.SUPPORT_TEAM
 import kotlinx.coroutines.flow.last
-import kotlin.time.ExperimentalTime
 
 class ThreadInviter : Extension() {
 

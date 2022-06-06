@@ -11,3 +11,7 @@ kord-extensions = { module = "com.kotlindiscord.kord.extensions:kord-extensions"
 kord-phishing = { module = "com.kotlindiscord.kord.extensions:extra-phishing", version.ref = "kord-extensions" }
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 logging = { module = "io.github.microutils:kotlin-logging", version.ref = "logging" }
+
+toml = "com.github.jezza:toml:1.2"
+githubAPI = "org.kohsuke:github-api:1.306"
+kmongo = "org.litote.kmongo:kmongo-coroutine-serialization:4.5.1"

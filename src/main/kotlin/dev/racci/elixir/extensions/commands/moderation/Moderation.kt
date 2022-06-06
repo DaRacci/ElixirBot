@@ -1,11 +1,11 @@
-@file:OptIn(ExperimentalTime::class)
-
 package dev.racci.elixir.extensions.commands.moderation
 
 import com.kotlindiscord.kord.extensions.DISCORD_BLACK
 import com.kotlindiscord.kord.extensions.DISCORD_BLURPLE
 import com.kotlindiscord.kord.extensions.DISCORD_GREEN
 import com.kotlindiscord.kord.extensions.DISCORD_RED
+import com.kotlindiscord.kord.extensions.checks.anyGuild
+import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.coalescingDefaultingDuration
@@ -33,13 +33,9 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
 import dev.kord.rest.builder.message.create.embed
-import dev.racci.elixir.database.DatabaseManager
-import dev.racci.elixir.utils.ADMIN
-import dev.racci.elixir.utils.FULLMODERATORS
-import dev.racci.elixir.utils.MODERATORS
-import dev.racci.elixir.utils.MOD_ACTION_LOG
+import dev.racci.elixir.utils.DatabaseHelper
 import dev.racci.elixir.utils.ResponseHelper
-import dev.racci.elixir.utils.TRIALMODERATORS
+import dev.racci.elixir.utils.configPresent
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
@@ -54,7 +50,6 @@ import org.jetbrains.exposed.sql.replace
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import kotlin.system.exitProcess
-import kotlin.time.ExperimentalTime
 
 @Suppress("DuplicatedCode")
 class Moderation : Extension() {
@@ -62,18 +57,18 @@ class Moderation : Extension() {
     override val name = "moderation"
 
     override suspend fun setup() {
-        /**
-         * Clear Command
-         * @author IMS212
-         */
+
         ephemeralSlashCommand(::ClearArgs) {
             name = "clear"
             description = "Clears messages."
 
-            allowRole(FULLMODERATORS)
+            check { anyGuild() }
+            check { configPresent() }
+            allowRole(DatabaseHelper.getConfig(guildId)!!.moderatorRole)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val messageAmount = arguments.messages
                 val messageHolder = arrayListOf<Snowflake>()
                 val textChannel = channel as GuildMessageChannelBehavior
@@ -84,12 +79,12 @@ class Moderation : Extension() {
                     data["amount"] = messageAmount
                 }
 
-                channel.getMessagesBefore(channel.messages.last().id, Integer.min(messageAmount, 100)).filterNotNull()
-                    .onEach {
-                        messageHolder.add(it.id)
-                    }.catch {
-                        it.printStackTrace()
-                        println("error")
+                channel.getMessagesBefore(
+                    channel.messages.last().id,
+                    messageAmount.coerceAtMost(100)
+                ).filterNotNull()
+                    .onEach { messageHolder.add(it) }
+                    .catch {
                         sentry.breadcrumb(BreadcrumbType.Error) {
                             category = "commands.moderation.clear.getMessages"
                             message = "Error gathering message"
@@ -129,21 +124,20 @@ class Moderation : Extension() {
             }
         }
 
-        /**
-         * Ban command
-         * @author IMS212
-         */
         ephemeralSlashCommand(::BanArgs) {
             name = "ban"
             description = "Bans a user."
 
-            allowRole(FULLMODERATORS)
+            check { anyGuild() }
+            check { configPresent() }
+            allowRole(DatabaseHelper.getConfig(guildId)!!.moderatorRole)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
 
-                if (guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild.getMember(userArg.id).isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.ban.checkIsBot"
                         message = "Lmao someone tried to ban a bot"
@@ -153,8 +147,8 @@ class Moderation : Extension() {
                         content = "Lol you can't ban me or other bots"
                     }
                     return@action
-                } else if (guild?.getRole(MODERATORS)
-                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
+                } else if (guild.getRole(MODERATORS)
+                    .let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.ban.checkIsMod"
@@ -169,7 +163,7 @@ class Moderation : Extension() {
 
                 val dm = ResponseHelper.userDMEmbed(
                     userArg,
-                    "You have been banned from ${guild?.fetchGuild()?.name}",
+                    "You have been banned from ${guild.fetchGuild().name}",
                     "**Reason:**\n${arguments.reason}",
                     null
                 )
@@ -180,7 +174,7 @@ class Moderation : Extension() {
                     data["banTarget"] = userArg.tag
                 }
 
-                guild?.ban(userArg.id, builder = {
+                guild.ban(userArg.id, builder = {
                     this.reason = "Requested by " + user.asUser().username
                     this.deleteMessagesDays = arguments.messages
                 })
@@ -242,7 +236,8 @@ class Moderation : Extension() {
             allowRole(FULLMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
@@ -251,7 +246,7 @@ class Moderation : Extension() {
                     data["unbanTarget"] = userArg.tag
                 }
 
-                guild?.unban(userArg.id)
+                guild.unban(userArg.id)
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "commands.moderation.unban.unbanTask"
@@ -284,10 +279,11 @@ class Moderation : Extension() {
             allowRole(FULLMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
 
-                if (guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild.getMember(userArg.id).isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.soft-ban.checkIsBot"
                         message = "Lmao someone tried to ban a bot"
@@ -297,8 +293,8 @@ class Moderation : Extension() {
                         content = "Lol you can't ban me or other bots"
                     }
                     return@action
-                } else if (guild?.getRole(MODERATORS)
-                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
+                } else if (guild.getRole(MODERATORS)
+                    .let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.soft-ban.checkIsMod"
@@ -313,7 +309,7 @@ class Moderation : Extension() {
 
                 val dm = ResponseHelper.userDMEmbed(
                     userArg,
-                    "You have been soft-banned from ${guild?.fetchGuild()?.name}",
+                    "You have been soft-banned from ${guild.fetchGuild().name}",
                     "**Reason:**\n${arguments.reason}\n\nYou are free to rejoin without the need to be unbanned",
                     null
                 )
@@ -324,7 +320,7 @@ class Moderation : Extension() {
                     data["soft-banTarget"] = userArg.tag
                 }
 
-                guild?.ban(userArg.id, builder = {
+                guild.ban(userArg.id, builder = {
                     this.reason = "Requested by ${user.asUser().username}"
                     this.deleteMessagesDays = arguments.messages
                 })
@@ -373,7 +369,7 @@ class Moderation : Extension() {
                     timestamp = Clock.System.now()
                 }
 
-                guild?.unban(userArg.id)
+                guild.unban(userArg.id)
             }
         }
 
@@ -388,10 +384,11 @@ class Moderation : Extension() {
             allowRole(FULLMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
 
-                if (guild?.getMember(userArg.id)?.isBot == true) {
+                if (guild.getMember(userArg.id).isBot == true) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.kick.checkIsBot"
                         message = "Lmao someone tried to kick a bot"
@@ -401,8 +398,8 @@ class Moderation : Extension() {
                         content = "Lol you can't kick me or other bots"
                     }
                     return@action
-                } else if (guild?.getRole(MODERATORS)
-                    ?.let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
+                } else if (guild.getRole(MODERATORS)
+                    .let { guild?.getMember(arguments.userArgument.id)?.hasRole(it.asRole()) } == true
                 ) {
                     sentry.breadcrumb(BreadcrumbType.Error) {
                         category = "commands.moderation.kick.checkIsMod"
@@ -417,7 +414,7 @@ class Moderation : Extension() {
 
                 val dm = ResponseHelper.userDMEmbed(
                     userArg,
-                    "You have been kicked from ${guild?.fetchGuild()?.name}",
+                    "You have been kicked from ${guild.fetchGuild().name}",
                     "**Reason:**\n${arguments.reason}",
                     null
                 )
@@ -428,7 +425,7 @@ class Moderation : Extension() {
                     data["kickTarget"] = userArg.tag
                 }
 
-                guild?.kick(userArg.id, "Requested by " + user.asUser().username)
+                guild.kick(userArg.id, "Requested by " + user.asUser().username)
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "commands.moderation.kick.kickTask"
@@ -479,7 +476,8 @@ class Moderation : Extension() {
             allowRole(FULLMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
 
                 if (arguments.embedMessage) {
                     channel.createEmbed {
@@ -526,7 +524,8 @@ class Moderation : Extension() {
             allowRole(FULLMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
 
                 this@ephemeralSlashCommand.kord.editPresence {
                     status = PresenceStatus.Online
@@ -562,7 +561,8 @@ class Moderation : Extension() {
             allowRole(ADMIN)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
 
                 respond {
                     embed {
@@ -620,7 +620,8 @@ class Moderation : Extension() {
 
             action {
                 val userArg = arguments.userArgument
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 var databasePoints: String? = null
 
                 newSuspendedTransaction {
@@ -641,7 +642,7 @@ class Moderation : Extension() {
 
                 val dm = ResponseHelper.userDMEmbed(
                     userArg,
-                    "You have been warned in ${guild?.fetchGuild()?.name}",
+                    "You have been warned in ${guild.fetchGuild().name}",
                     "You were given ${arguments.warnPoints} points\nYour total is now ${Integer.parseInt(databasePoints)}\n\n**Reason:**\n${arguments.reason}",
                     null
                 )
@@ -705,11 +706,12 @@ class Moderation : Extension() {
             allowRole(TRIALMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
                 val duration = Clock.System.now().plus(arguments.duration, TimeZone.currentSystemDefault())
 
-                if (guild?.getMember(userArg.id)?.isBot == true || guild?.getRole(MODERATORS)
+                if (guild.getMember(userArg.id).isBot == true || guild?.getRole(MODERATORS)
                     ?.let { guild?.getMember(userArg.id)?.hasRole(it.asRole()) } == true
                 ) {
                     respond {
@@ -739,9 +741,10 @@ class Moderation : Extension() {
                     data["timeoutTarget"] = userArg.tag
                 }
 
-                guild?.getMember(userArg.id)?.edit {
-                    timeoutUntil = duration
-                }
+                guild.getMember(userArg.id)
+                    .edit {
+                        timeoutUntil = duration
+                    }
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "commands.moderation.timeout.timeoutTask"
@@ -805,7 +808,8 @@ class Moderation : Extension() {
             allowRole(TRIALMODERATORS)
 
             action {
-                val actionLog = guild?.getChannel(MOD_ACTION_LOG) as GuildMessageChannelBehavior
+                val guild = guildFor(event)!!
+                val actionLog = DatabaseHelper.getConfig(guild.id)!!.staffActionChannel.let { guild.getChannelOrNull(it) } as? GuildMessageChannelBehavior ?: return@action
                 val userArg = arguments.userArgument
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
@@ -814,9 +818,10 @@ class Moderation : Extension() {
                     data["removeTimeoutTarget"] = userArg.tag
                 }
 
-                guild?.getMember(userArg.id)?.edit {
-                    timeoutUntil = null
-                }
+                guild.getMember(userArg.id)
+                    .edit {
+                        timeoutUntil = null
+                    }
 
                 sentry.breadcrumb(BreadcrumbType.Info) {
                     category = "commands.moderation.remove-timeout.remove-timeoutTask"

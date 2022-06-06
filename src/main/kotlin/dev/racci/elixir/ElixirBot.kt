@@ -6,6 +6,8 @@ import com.github.jezza.TomlTable
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.modules.extra.phishing.DetectionAction
 import com.kotlindiscord.kord.extensions.modules.extra.phishing.extPhishing
+import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
@@ -22,21 +24,33 @@ import dev.racci.elixir.extensions.commands.util.Github
 import dev.racci.elixir.extensions.commands.util.Ping
 import dev.racci.elixir.support.ThreadInviter
 import dev.racci.elixir.utils.BOT_TOKEN
-import dev.racci.elixir.utils.CONFIG_PATH
+import dev.racci.elixir.utils.DATA_PATH
 import dev.racci.elixir.utils.GITHUB_OAUTH
-import dev.racci.elixir.utils.GUILD_ID
+import dev.racci.elixir.utils.MONGO_URI
 import dev.racci.elixir.utils.SENTRY_DSN
 import mu.KotlinLogging
+import org.bson.UuidRepresentation
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GitHubBuilder
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import org.litote.kmongo.coroutine.coroutine
+import org.litote.kmongo.reactivestreams.KMongo
+import java.io.IOException
+import kotlin.io.path.Path
+import kotlin.io.path.inputStream
 import kotlin.properties.Delegates
 
-val configPath: Path = Paths.get(CONFIG_PATH)
-val config: TomlTable = Toml.from(Files.newInputStream(Paths.get("$configPath/config.toml")))
-var github: GitHub? = null
+val config: TomlTable = Toml.from(Path("$DATA_PATH/config.toml").inputStream())
+val github: GitHub? = run {
+    try {
+        val inst = GitHubBuilder().withOAuthToken(GITHUB_OAUTH).build()
+        gitHubLogger.info("Logged into GitHub!")
+        inst
+    } catch (e: IOException) {
+        gitHubLogger.error(e) { "Failed to log into GitHub!" }
+        null
+    }
+}
+
 var bot by Delegates.notNull<ExtensibleBot>()
 
 private val gitHubLogger = KotlinLogging.logger {}
@@ -44,10 +58,13 @@ private val gitHubLogger = KotlinLogging.logger {}
 suspend fun main() {
     bot = ExtensibleBot(BOT_TOKEN) {
         applicationCommands {
-            defaultGuild(GUILD_ID)
+            enabled = true
+//            defaultGuild(GUILD_ID) // No more specific guilds
         }
         members {
-            fill(GUILD_ID)
+            lockMemberRequests = true
+            all()
+//            fill(GUILD_ID)
         }
         intents {
             +Intent.GuildMembers
@@ -66,7 +83,7 @@ suspend fun main() {
             add(::Report)
             add(::JoinLeaveEvent)
             add(::MessageEvents)
-            add(::Github)
+            if (github != null) add(::Github)
             add(::Custom)
             add(::StatChannels)
             add(::LogEvents)
@@ -91,17 +108,7 @@ suspend fun main() {
         }
         presence {
             status = PresenceStatus.Online
-            playing(config.get("activity") as String)
-        }
-
-        try {
-            @Suppress("BlockingMethodInNonBlockingContext")
-            github = GitHubBuilder().withOAuthToken(GITHUB_OAUTH).build()
-            gitHubLogger.info("Logged into GitHub!")
-        } catch (exception: Exception) {
-            exception.printStackTrace()
-            gitHubLogger.error("Failed to log into GitHub!")
-            throw Exception(exception)
+            watching("you.")
         }
     }
     bot.start()

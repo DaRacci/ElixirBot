@@ -16,9 +16,12 @@ repositories {
 
 dependencies {
 
+    implementation(platform(kotlin("bom")))
+    implementation(libs.bundles.kotlin)
+    implementation(libs.bundles.kotlinx)
+
     implementation(eLib.kord.extensions)
     implementation(eLib.kord.phishing)
-    implementation(libs.kotlin.stdlib)
 
     // Logging dependencies
     implementation(eLib.groovy)
@@ -26,29 +29,18 @@ dependencies {
     implementation(eLib.logging)
 
     // Tags
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.serialization.kaml)
+//    implementation(libs.kotlinx.serialization.json)
+//    implementation(libs.kotlinx.serialization.kaml)
 
-    @Suppress("GradlePackageUpdate")
-    implementation("com.github.jezza:toml:1.2")
-
-    // Github API
-    implementation("org.kohsuke:github-api:1.301")
-
-    // Exposed
+    implementation(eLib.toml)
+    implementation(eLib.githubAPI)
+    implementation(eLib.kmongo)
     implementation(libs.bundles.exposed)
-
-    // SQLite
-    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
 }
 
 application {
     // This is deprecated, but the Shadow plugin requires it
     mainClassName = "dev.racci.elixir.ElixirBotKt"
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions.freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
 }
 
 tasks.jar {
